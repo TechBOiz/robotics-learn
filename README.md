@@ -51,6 +51,17 @@ Set `draft: true` in the front matter to keep an article out of the build.
 Add an entry to `src/data/categories.ts`. The topic page and its card on the home page
 are generated from that list, and show the `planned` items until articles exist.
 
+## How the interface works
+
+- **Sidebar outline.** Built from `src/data/categories.ts` and the article front matter by
+  `src/lib/outline.ts`. A topic appears as soon as it has one published article.
+- **Reading progress.** "Mark as read" stores article ids in the reader's browser
+  (`localStorage`, key `robotics-learn:read`). Nothing is sent anywhere, and progress does
+  not follow the reader to another device.
+- **Levels.** The coloured square beside each article is its `level` from the front matter.
+- **Typefaces.** IBM Plex Sans for the interface and Literata for article text, bundled
+  from the `@fontsource-variable` packages, so no external font service is contacted.
+
 ## Figures
 
 Figures are inline SVG components in `src/figures/`. They use the classes defined under

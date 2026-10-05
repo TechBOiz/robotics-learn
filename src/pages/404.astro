@@ -3,11 +3,6 @@ import Base from '../layouts/Base.astro';
 import { href } from '../lib/paths';
 ---
 <Base title="Page not found">
-  <div class="container">
-    <header class="page-head">
-      <p class="kicker">404</p>
-      <h1>That page does not exist.</h1>
-      <p class="lede">It may have moved. <a href={href('/')}>Go back to the topics</a>.</p>
-    </header>
-  </div>
+  <h1 class="page-title">That page does not exist</h1>
+  <p class="lede">It may have moved. Use the outline on the left, or <a href={href('/')}>go to all topics</a>.</p>
 </Base>

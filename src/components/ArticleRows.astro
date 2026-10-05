@@ -1,0 +1,20 @@
+---
+import { levelLabel, type OutlineArticle } from '../lib/outline';
+interface Props { articles: OutlineArticle[] }
+const { articles } = Astro.props;
+---
+<ol class="rows">
+  {articles.map((a, i) => (
+    <li data-level={a.level}>
+      <a href={a.url} data-article-id={a.id} data-n={i + 1}>
+        <span class="row-title">{a.title}</span>
+        <span class="row-meta">
+          <span class="check" aria-hidden="true">✓</span>
+          <span class:list={['level', a.level]}>{levelLabel[a.level]}</span>
+          <span>{a.minutes} min</span>
+        </span>
+        <span class="row-sum">{a.summary}</span>
+      </a>
+    </li>
+  ))}
+</ol>

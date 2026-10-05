@@ -1,60 +1,43 @@
 ---
 import Base from '../layouts/Base.astro';
-import ArticleList from '../components/ArticleList.astro';
-import { categories } from '../data/categories';
-import { getArticles } from '../lib/articles';
-import { href } from '../lib/paths';
+import ArticleRows from '../components/ArticleRows.astro';
+import { getOutline } from '../lib/outline';
 
-const articles = await getArticles();
-const count = (id: string) => articles.filter((a) => a.data.category === id).length;
-const featured = categories.find((c) => count(c.id) > 0);
-const featuredArticles = featured ? articles.filter((a) => a.data.category === featured.id) : [];
+const outline = await getOutline();
+const first = outline[0]?.articles[0];
+const total = outline.reduce((n, t) => n + t.articles.length, 0);
 ---
-<Base section="topics">
-  <section class="hero container">
-    <p class="kicker">Everything Robotics · Learn</p>
-    <h1>How robots work, one layer at a time.</h1>
-    <p class="lede">
-      Short, sourced articles on the parts of a robot that matter — from the motors that move it to the models
-      that decide what it does. Written for engineers who want the reasoning, not just the vocabulary.
-    </p>
-  </section>
+<Base home>
+  <h1 class="page-title">Learn how robots work</h1>
+  <p class="lede">
+    {total} articles across {outline.length} topics, from the motors that move a robot to the models that decide what it does.
+    Each one explains the reasoning and links its sources.
+  </p>
 
-  {featured && (
-    <section class="section container" aria-labelledby="start-here">
-      <div class="section-head">
-        <h2 id="start-here">Start here</h2>
-        <p>The first series is complete enough to read end to end.</p>
-      </div>
-      <div class="series">
-        <div>
-          <p class="kicker">Series · {featuredArticles.length} articles</p>
-          <h3>{featured.name}</h3>
-          <p>{featured.blurb}</p>
-          <a class="more" href={href(`/${featured.id}/`)}>Open the series →</a>
-        </div>
-        <ArticleList articles={featuredArticles} />
-      </div>
-    </section>
-  )}
-
-  <section class="section container" id="topics" aria-labelledby="topics-title">
-    <div class="section-head">
-      <h2 id="topics-title">Topics</h2>
-      <p>Each topic opens with what is planned, and fills in as articles are written.</p>
+  <div class="resume" data-resume>
+    <div class="resume-text">
+      <small data-resume-label>Start with</small>
+      <strong data-resume-title>{first?.title}</strong>
     </div>
-    <ul class="category-grid">
-      {categories.map((c) => (
-        <li>
-          <a class="category-card" href={href(`/${c.id}/`)}>
-            <h3>{c.name}</h3>
-            <p>{c.blurb}</p>
-            {count(c.id) > 0
-              ? <span class="badge live">{count(c.id)} {count(c.id) === 1 ? 'article' : 'articles'}</span>
-              : <span class="badge">Planned</span>}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
+    <a class="btn" href={first?.url} data-resume-link>Start reading</a>
+  </div>
+
+  <div class="filters" role="group" aria-label="Filter by level">
+    <span>Show</span>
+    <button class="chip" type="button" data-level-filter="all" aria-pressed="true">All levels</button>
+    <button class="chip" type="button" data-level-filter="intro" aria-pressed="false"><span class="lvl intro" aria-hidden="true"></span>Intro</button>
+    <button class="chip" type="button" data-level-filter="intermediate" aria-pressed="false"><span class="lvl intermediate" aria-hidden="true"></span>Intermediate</button>
+    <button class="chip" type="button" data-level-filter="advanced" aria-pressed="false"><span class="lvl advanced" aria-hidden="true"></span>Advanced</button>
+  </div>
+
+  {outline.map((t) => (
+    <section class="topic" aria-labelledby={`topic-${t.id}`}>
+      <div class="topic-head">
+        <h2 id={`topic-${t.id}`}><a href={t.url}>{t.name}</a></h2>
+        <p>{t.blurb}</p>
+        <span class="side-count" data-progress-for={t.id}>0/{t.articles.length}</span>
+      </div>
+      <ArticleRows articles={t.articles} />
+    </section>
+  ))}
 </Base>

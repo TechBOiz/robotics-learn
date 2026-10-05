@@ -1,17 +1,19 @@
 ---
+import '@fontsource-variable/ibm-plex-sans';
+import '@fontsource-variable/literata';
 import '../styles/global.css';
+import Sidebar from '../components/Sidebar.astro';
+import { getOutline } from '../lib/outline';
 import { href } from '../lib/paths';
 
-interface Props {
-  title?: string;
-  description?: string;
-  section?: 'topics' | 'about';
-}
+interface Props { title?: string; description?: string; currentTopic?: string; currentArticle?: string; home?: boolean }
 
-const siteName = 'Everything Robotics · Learn';
-const { title, description = 'Plain-language, sourced articles on how robots work — actuators, dynamics, sensing, perception and learning.', section } = Astro.props;
-const fullTitle = title ? `${title} — ${siteName}` : siteName;
+const siteName = 'Everything Robotics Learn';
+const { title, description = 'Sourced articles on how robots work: actuators, dynamics, sensing, control, perception and learning.', currentTopic, currentArticle, home } = Astro.props;
+const fullTitle = title ? `${title} | ${siteName}` : siteName;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const outline = await getOutline();
+const order = outline.flatMap((t) => t.articles.map((a) => ({ id: a.id, topic: t.id, title: a.title, url: a.url })));
 ---
 <!doctype html>
 <html lang="en">
@@ -29,28 +31,102 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-      <nav class="container" aria-label="Main">
-        <a class="brand" href={href('/')}>
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2M5.3 5.3l2.3 2.3M16.4 16.4l2.3 2.3M18.7 5.3l-2.3 2.3M7.6 16.4l-2.3 2.3" /></svg>
-          </span>
-          Everything Robotics <small>Learn</small>
-        </a>
-        <div class="nav-links">
-          <a href={href('/#topics')} aria-current={section === 'topics' ? 'page' : undefined}>Topics</a>
-          <a href={href('/about/')} aria-current={section === 'about' ? 'page' : undefined}>About</a>
-        </div>
-      </nav>
+    <header class="topbar">
+      <button class="nav-toggle" type="button" aria-controls="sidebar" aria-expanded="false" data-nav-toggle>Contents</button>
+      <a class="brand" href={href('/')}>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2M5.3 5.3l2.3 2.3M16.4 16.4l2.3 2.3M18.7 5.3l-2.3 2.3M7.6 16.4l-2.3 2.3" /></svg>
+        </span>
+        <span>Everything Robotics <span class="brand-sub">Learn</span></span>
+      </a>
+      <span class="topbar-spacer"></span>
+      <span class="overall" title="Your reading progress is stored in this browser only">
+        <span class="meter" aria-hidden="true"><span data-overall-bar></span></span>
+        <span data-overall-text>0 of {order.length} read</span>
+      </span>
+      <a class="plain" href={href('/about/')}>About</a>
     </header>
-    <main id="main">
-      <slot />
-    </main>
-    <footer class="site-footer">
-      <div class="container">
-        <span>Everything Robotics · Learn — articles are written to be checked: every factual claim about a product or paper links to its source.</span>
-        <a href="https://github.com/TechBOiz/robotics-learn">GitHub</a>
-      </div>
-    </footer>
+    <div class="shell">
+      <Sidebar currentTopic={currentTopic} currentArticle={currentArticle} home={home} />
+      <div class="backdrop" data-nav-close></div>
+      <main class="main" id="main">
+        <div class="main-inner">
+          <slot />
+          <footer class="footer">
+            <span>Claims about a specific product or paper link to their source. Reading progress is kept in this browser only.</span>
+            <a href="https://github.com/TechBOiz/robotics-learn">Source on GitHub</a>
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script is:inline define:vars={{ order }}>
+      (function () {
+        var KEY = 'robotics-learn:read';
+        var read = [];
+        try { read = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { read = []; }
+        function save() { try { localStorage.setItem(KEY, JSON.stringify(read)); } catch (e) {} }
+        function isRead(id) { return read.indexOf(id) !== -1; }
+        function paint() {
+          document.querySelectorAll('[data-article-id]').forEach(function (el) { el.classList.toggle('is-read', isRead(el.getAttribute('data-article-id'))); });
+          document.querySelectorAll('[data-progress-for]').forEach(function (el) {
+            var topic = el.getAttribute('data-progress-for');
+            var ids = order.filter(function (a) { return a.topic === topic; });
+            var n = ids.filter(function (a) { return isRead(a.id); }).length;
+            el.textContent = n + '/' + ids.length;
+            el.classList.toggle('done', n === ids.length);
+          });
+          var total = order.length, done = order.filter(function (a) { return isRead(a.id); }).length;
+          var bar = document.querySelector('[data-overall-bar]'); if (bar) bar.style.width = (total ? (100 * done) / total : 0) + '%';
+          var txt = document.querySelector('[data-overall-text]'); if (txt) txt.textContent = done + ' of ' + total + ' read';
+          var btn = document.querySelector('[data-mark-read]');
+          if (btn) { var on = isRead(btn.getAttribute('data-mark-read')); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); btn.textContent = on ? '✓ Read. Mark as unread' : 'Mark as read'; }
+          var resume = document.querySelector('[data-resume]');
+          if (resume) {
+            var next = order.filter(function (a) { return !isRead(a.id); })[0];
+            var label = resume.querySelector('[data-resume-label]'), ttl = resume.querySelector('[data-resume-title]'), link = resume.querySelector('[data-resume-link]');
+            if (!next) { label.textContent = 'You have read everything published so far.'; ttl.textContent = 'New articles appear in the outline as they are written.'; link.hidden = true; }
+            else { label.textContent = done ? 'Next unread article' : 'Start with'; ttl.textContent = next.title; link.href = next.url; link.textContent = done ? 'Continue reading' : 'Start reading'; link.hidden = false; }
+          }
+        }
+        document.addEventListener('click', function (e) {
+          var t = e.target.closest ? e.target.closest('[data-mark-read], [data-mark-on-click], [data-nav-toggle], [data-nav-close], [data-level-filter]') : null;
+          if (!t) return;
+          if (t.hasAttribute('data-mark-read')) { var id = t.getAttribute('data-mark-read'); var i = read.indexOf(id); if (i === -1) read.push(id); else read.splice(i, 1); save(); paint(); }
+          else if (t.hasAttribute('data-mark-on-click')) { var id2 = t.getAttribute('data-mark-on-click'); if (!isRead(id2)) { read.push(id2); save(); } }
+          else if (t.hasAttribute('data-nav-toggle')) { var open = document.body.classList.toggle('nav-open'); t.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+          else if (t.hasAttribute('data-nav-close')) { document.body.classList.remove('nav-open'); var b = document.querySelector('[data-nav-toggle]'); if (b) b.setAttribute('aria-expanded', 'false'); }
+          else if (t.hasAttribute('data-level-filter')) {
+            var lvl = t.getAttribute('data-level-filter');
+            document.querySelectorAll('[data-level-filter]').forEach(function (c) { c.setAttribute('aria-pressed', c === t ? 'true' : 'false'); });
+            document.querySelectorAll('.topic').forEach(function (sec) {
+              var any = false;
+              sec.querySelectorAll('.rows li').forEach(function (li) { var show = lvl === 'all' || li.getAttribute('data-level') === lvl; li.hidden = !show; if (show) any = true; });
+              sec.hidden = !any;
+            });
+          }
+        });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
+        var filter = document.querySelector('[data-filter]');
+        if (filter) filter.addEventListener('input', function () {
+          var q = filter.value.trim().toLowerCase(), anyAll = false;
+          document.querySelectorAll('.side-topic').forEach(function (d) {
+            var any = false;
+            d.querySelectorAll('li').forEach(function (li) { var hit = !q || li.textContent.toLowerCase().indexOf(q) !== -1; li.hidden = !hit; if (hit) any = true; });
+            d.hidden = !any; if (q && any) d.open = true; if (any) anyAll = true;
+          });
+          var empty = document.querySelector('[data-filter-empty]'); if (empty) empty.style.display = anyAll ? 'none' : 'block';
+        });
+        var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+        if (tocLinks.length && 'IntersectionObserver' in window) {
+          var heads = tocLinks.map(function (a) { return document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1))); }).filter(Boolean);
+          var obs = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) { if (en.isIntersecting) tocLinks.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id); }); });
+          }, { rootMargin: '-15% 0px -70% 0px' });
+          heads.forEach(function (h) { obs.observe(h); });
+        }
+        var side = document.getElementById('sidebar'), cur = side && side.querySelector('a[aria-current="page"]'); if (cur) side.scrollTop = Math.max(0, cur.offsetTop - side.clientHeight / 2);
+        paint();
+      })();
+    </script>
   </body>
 </html>

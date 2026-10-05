@@ -1,8 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
-import ArticleList from '../../components/ArticleList.astro';
+import ArticleRows from '../../components/ArticleRows.astro';
 import { categories } from '../../data/categories';
-import { getArticlesIn } from '../../lib/articles';
+import { getOutline } from '../../lib/outline';
 import { href } from '../../lib/paths';
 
 export function getStaticPaths() {
@@ -10,30 +10,25 @@ export function getStaticPaths() {
 }
 
 const { category } = Astro.props;
-const articles = await getArticlesIn(category.id);
+const topic = (await getOutline()).find((t) => t.id === category.id);
+const minutes = topic ? topic.articles.reduce((n, a) => n + a.minutes, 0) : 0;
 ---
-<Base title={category.name} description={category.blurb} section="topics">
-  <div class="container">
-    <header class="page-head">
-      <p class="kicker"><a href={href('/#topics')}>Topics</a></p>
-      <h1>{category.name}</h1>
-      <p class="lede">{category.blurb}</p>
-    </header>
-
-    {articles.length > 0 && (
-      <section class="panel" aria-label="Articles">
-        <ArticleList articles={articles} />
+<Base title={category.name} description={category.blurb} currentTopic={category.id}>
+  <ol class="crumbs"><li><a href={href('/')}>All topics</a></li><li>{category.name}</li></ol>
+  <h1 class="page-title">{category.name}</h1>
+  <p class="lede">{category.blurb}</p>
+  {topic ? (
+    <>
+      <p class="meta" style="margin-top:1rem">
+        <span>{topic.articles.length} {topic.articles.length === 1 ? 'article' : 'articles'}</span>
+        <span>about {minutes} minutes of reading</span>
+        <span><span data-progress-for={category.id}>0/{topic.articles.length}</span> read</span>
+      </p>
+      <section class="topic" aria-label="Articles" style="margin-top:1.4rem">
+        <ArticleRows articles={topic.articles} />
       </section>
-    )}
-
-    <section class="section" aria-labelledby="planned">
-      <div class="panel">
-        <p class="kicker" id="planned">{articles.length > 0 ? 'Planned next' : 'No articles yet'}</p>
-        {articles.length === 0 && <p style="margin:0;color:var(--muted)">Nothing has been published in this topic. These are the articles queued for it:</p>}
-        <ul class="planned">
-          {category.planned.map((topic) => <li>{topic}</li>)}
-        </ul>
-      </div>
-    </section>
-  </div>
+    </>
+  ) : (
+    <p class="lede">Nothing is published in this topic yet. <a href={href('/')}>Browse all topics</a>.</p>
+  )}
 </Base>

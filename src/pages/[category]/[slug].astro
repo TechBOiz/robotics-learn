@@ -4,6 +4,7 @@ import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import { getCategory } from '../../data/categories';
 import { getArticles, type Article } from '../../lib/articles';
+import { levelLabel } from '../../lib/outline';
 import { articleHref, formatDate, href, readingMinutes, splitId } from '../../lib/paths';
 
 export async function getStaticPaths() {
@@ -11,53 +12,48 @@ export async function getStaticPaths() {
   return articles.map((article) => {
     const siblings = articles.filter((a) => a.data.category === article.data.category);
     const i = siblings.findIndex((a) => a.id === article.id);
-    return {
-      params: splitId(article.id),
-      props: { article, prev: siblings[i - 1], next: siblings[i + 1], position: i + 1, total: siblings.length },
-    };
+    return { params: splitId(article.id), props: { article, prev: siblings[i - 1], next: siblings[i + 1], position: i + 1, total: siblings.length } };
   });
 }
 
-interface Props {
-  article: Article;
-  prev?: Article;
-  next?: Article;
-  position: number;
-  total: number;
-}
+interface Props { article: Article; prev?: Article; next?: Article; position: number; total: number }
 
 const { article, prev, next, position, total } = Astro.props;
 const { Content, headings } = await render(article);
 const category = getCategory(article.data.category);
 const toc = headings.filter((h) => h.depth === 2);
 ---
-<Base title={article.data.title} description={article.data.summary} section="topics">
-  <article class="container">
+<Base title={article.data.title} description={article.data.summary} currentTopic={category.id} currentArticle={article.id}>
+  <article>
     <header class="article-head">
-      <p class="kicker"><a href={href(`/${category.id}/`)}>{category.name}</a> · Part {position} of {total}</p>
-      <h1>{article.data.title}</h1>
+      <ol class="crumbs"><li><a href={href('/')}>All topics</a></li><li><a href={href(`/${category.id}/`)}>{category.name}</a></li><li>Part {position} of {total}</li></ol>
+      <h1 class="page-title">{article.data.title}</h1>
       <p class="lede">{article.data.summary}</p>
       <div class="meta">
-        <span class:list={['badge', article.data.level]}>{article.data.level}</span>
+        <span class:list={['level', article.data.level]}>{levelLabel[article.data.level]}</span>
         <span>{readingMinutes(article.body)} min read</span>
         <span>Updated <time datetime={article.data.updated.toISOString().slice(0, 10)}>{formatDate(article.data.updated)}</time></span>
       </div>
     </header>
 
     <div class="article-grid">
-      <div class="prose">
-        <Content />
-        <nav class="pager" aria-label="Series">
-          {prev && <a class="prev" href={articleHref(prev.id)}><span>← Previous</span><strong>{prev.data.title}</strong></a>}
-          {next && <a class="next" href={articleHref(next.id)}><span>Next →</span><strong>{next.data.title}</strong></a>}
-        </nav>
+      <div>
+        <div class="prose"><Content /></div>
+        <div class="finish">
+          <div class="finish-actions">
+            <button class="btn quiet" type="button" data-mark-read={article.id} aria-pressed="false">Mark as read</button>
+            {next && <a class="btn" href={articleHref(next.id)} data-mark-on-click={article.id}>Mark as read and continue</a>}
+          </div>
+          <nav class="pager" aria-label="In this topic">
+            {prev && <a class="prev" href={articleHref(prev.id)}><small>Previous</small><strong>{prev.data.title}</strong></a>}
+            {next && <a class="next" href={articleHref(next.id)}><small>Next</small><strong>{next.data.title}</strong></a>}
+          </nav>
+        </div>
       </div>
       {toc.length > 1 && (
         <nav class="toc" aria-label="On this page">
           <h2>On this page</h2>
-          <ol>
-            {toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
-          </ol>
+          <ol>{toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}</ol>
         </nav>
       )}
     </div>
