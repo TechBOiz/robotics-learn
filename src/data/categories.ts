@@ -14,7 +14,7 @@ export const categories: Category[] = [
     name: 'Actuators & Drives',
     blurb: 'How robots turn electrical, fluid and chemical energy into force and motion.',
     domain: 'embedded-mechatronics',
-    planned: ['Motor drives and field-oriented control', 'Thermal limits and duty cycles', 'Sizing an actuator for a joint'],
+    planned: ['Brushless motor construction and winding design', 'Dexterous hand actuation', 'Hydraulic and electro-hydrostatic actuators', 'Actuator testing and characterisation'],
   },
   {
     id: 'dynamics',

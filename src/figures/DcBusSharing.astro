@@ -1,0 +1,23 @@
+---
+// Several joint drives on one DC bus.
+---
+<svg class="fig" viewBox="0 0 720 260" role="img" aria-labelledby="db-title db-desc">
+  <title id="db-title">Joint drives sharing a common DC bus</title>
+  <desc id="db-desc">A battery with its management system, a bus capacitor bank and a brake chopper with resistor sit on a shared DC bus. Below it, several joint drives connect to the same bus. Power returned by a braking joint flows along the bus directly into a joint that is driving, and only the remainder goes to the battery or the resistor.</desc>
+  <defs><marker id="ah-db" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  <line class="wire" stroke-width="4" x1="30" y1="120" x2="690" y2="120" />
+  <text x="690" y="110" text-anchor="end" class="t-small t-strong">shared DC bus</text>
+  <rect class="soft2 c2" stroke-width="1.4" x="40" y="24" width="140" height="56" rx="8" /><text x="110" y="48" text-anchor="middle" class="t-strong">Battery + BMS</text><text x="110" y="66" text-anchor="middle" class="t-small t-muted">limits charge current</text>
+  <line class="wire" x1="110" y1="80" x2="110" y2="118" marker-start="url(#ah-db)" marker-end="url(#ah-db)" />
+  <rect class="box" x="230" y="24" width="140" height="56" rx="8" /><text x="300" y="48" text-anchor="middle" class="t-strong">Bus capacitors</text><text x="300" y="66" text-anchor="middle" class="t-small t-muted">absorb fast spikes</text>
+  <line class="wire" x1="300" y1="80" x2="300" y2="118" marker-start="url(#ah-db)" marker-end="url(#ah-db)" />
+  <rect class="soft3 c3" stroke-width="1.4" x="420" y="24" width="160" height="56" rx="8" /><text x="500" y="48" text-anchor="middle" class="t-strong">Brake chopper</text><text x="500" y="66" text-anchor="middle" class="t-small t-muted">burns what nothing can take</text>
+  <line class="wire" x1="500" y1="118" x2="500" y2="82" marker-end="url(#ah-db)" />
+  <rect class="soft1 c1" stroke-width="1.4" x="60" y="166" width="150" height="56" rx="8" /><text x="135" y="190" text-anchor="middle" class="t-strong">Knee drive</text><text x="135" y="208" text-anchor="middle" class="t-small t-c2">braking — returns power</text>
+  <rect class="soft1 c1" stroke-width="1.4" x="285" y="166" width="150" height="56" rx="8" /><text x="360" y="190" text-anchor="middle" class="t-strong">Hip drive</text><text x="360" y="208" text-anchor="middle" class="t-small t-c1">driving — draws power</text>
+  <rect class="soft1 c1" stroke-width="1.4" x="510" y="166" width="150" height="56" rx="8" /><text x="585" y="190" text-anchor="middle" class="t-strong">Other joints</text><text x="585" y="208" text-anchor="middle" class="t-small t-muted">either direction</text>
+  <path class="c2 thick" d="M135 166 V132 H360 V164" marker-end="url(#ah-db)" />
+  <line class="wire" x1="585" y1="122" x2="585" y2="164" marker-start="url(#ah-db)" marker-end="url(#ah-db)" />
+  <text x="248" y="148" text-anchor="middle" class="t-small t-c2">joint to joint, no battery round trip</text>
+  <text x="360" y="250" text-anchor="middle" class="t-small t-muted">The cheapest regeneration is power that never leaves the bus.</text>
+</svg>

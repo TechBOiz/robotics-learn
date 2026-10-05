@@ -1,0 +1,40 @@
+---
+// A linear actuator across a knee: geometry (left) and how the moment arm varies with angle (right).
+const a = 300, b = 50, lead = 5; // mm
+const arm = (deg: number) => {
+  const p = (deg * Math.PI) / 180;
+  return (a * b * Math.sin(p)) / Math.sqrt(a * a + b * b - 2 * a * b * Math.cos(p));
+};
+const X = (deg: number) => 400 + ((deg - 20) / 140) * 250;
+const Y = (r: number) => 250 - (r / 60) * 200;
+const curve = Array.from({ length: 71 }, (_, i) => 20 + i * 2).map((d) => `${X(d).toFixed(1)},${Y(arm(d)).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 700 316" role="img" aria-labelledby="kl-title kl-desc">
+  <title id="kl-title">A linear actuator driving a knee, and its moment arm against joint angle</title>
+  <desc id="kl-desc">Left: a linear actuator runs from high on the thigh to a short lever on the shin, pushing the knee through a moment arm r. Right: the moment arm, and with it the equivalent gear ratio, rises to a peak of about 50 millimetres near the middle of the range and falls toward both ends.</desc>
+  <!-- geometry -->
+  <line class="wire" stroke-width="9" stroke-linecap="round" x1="110" y1="40" x2="150" y2="200" opacity="0.35" />
+  <line class="wire" stroke-width="9" stroke-linecap="round" x1="150" y1="200" x2="120" y2="296" opacity="0.35" />
+  <line class="wire" stroke-width="5" stroke-linecap="round" x1="150" y1="200" x2="212" y2="206" />
+  <line class="c3" stroke-width="7" stroke-linecap="round" x1="122" y1="70" x2="212" y2="206" />
+  <circle class="surface c1" stroke-width="2" cx="150" cy="200" r="7" />
+  <circle class="surface c3" stroke-width="2" cx="122" cy="70" r="5" /><circle class="surface c3" stroke-width="2" cx="212" cy="206" r="5" />
+  <line class="c2 dash" stroke-width="1.6" x1="150" y1="200" x2="187" y2="169" />
+  <text x="160" y="176" class="t-small t-c2 t-math">r</text>
+  <text x="56" y="120" class="t-small">thigh</text><text x="76" y="262" class="t-small">shin</text>
+  <text x="194" y="120" class="t-small t-c3">linear actuator</text>
+  <text x="188" y="226" class="t-small">lever on the shin</text>
+  <text x="130" y="216" text-anchor="end" class="t-small t-c1">knee</text>
+  <text x="20" y="22" class="t-small t-muted">joint torque = actuator force × r</text>
+  <!-- chart -->
+  {[0, 20, 40, 60].map((r) => <line class="grid" x1="400" y1={Y(r)} x2="650" y2={Y(r)} />)}
+  <polyline class="axis" points="400,44 400,250 656,250" />
+  <polyline class="c2 thick" points={curve} />
+  {[0, 20, 40, 60].map((r) => <text x="392" y={Y(r) + 4} text-anchor="end" class="t-small t-muted">{r}</text>)}
+  {[0, 20, 40, 60].map((r) => <text x="660" y={Y(r) + 4} class="t-small t-muted">{Math.round((2 * Math.PI * r) / lead)}:1</text>)}
+  {[20, 90, 160].map((d) => <text x={X(d)} y="268" text-anchor="middle" class="t-small t-muted">{d}°</text>)}
+  <text x="525" y="290" text-anchor="middle" class="t-muted">Angle between thigh and lever</text>
+  <text x="400" y="30" class="t-small">moment arm r (mm)</text>
+  <text x="690" y="30" text-anchor="end" class="t-small">equivalent ratio</text>
+  <text x="690" y="308" text-anchor="end" class="t-small t-muted">Example: attachments 300 mm and 50 mm from the knee, 5 mm screw lead.</text>
+</svg>

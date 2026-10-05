@@ -10,6 +10,7 @@ tags: [actuators, humanoids, quasi-direct-drive, roller-screw, artificial-muscle
 import Figure from '../../../components/Figure.astro';
 import Callout from '../../../components/Callout.astro';
 import ActuatorTimeline from '../../../figures/ActuatorTimeline.astro';
+import HumanoidMap from '../../../figures/HumanoidMap.astro';
 
 For most of robotics' history, the actuator was a solved problem with a standard answer: a servo motor and a high-ratio precision gearbox, bolted to the floor. Robots that walk, get knocked over and work next to people broke that answer, and the humanoid build-out of the 2020s turned actuator design into a manufacturing race.
 
@@ -60,6 +61,10 @@ That has pulled established motion and automotive suppliers into the market with
 Robot makers are meanwhile redesigning for volume. Figure says its [Figure 03](https://www.figure.ai/news/introducing-figure-03) moved from CNC-machined parts to die-casting, injection moulding and stamping, with actuators it describes as twice as fast with improved torque density.
 
 The technical consequence is consolidation around a few module types: planetary quasi-direct-drive for dynamic joints, strain wave or cycloidal modules where precision matters, and roller-screw linear actuators for high-force leg joints.
+
+<Figure number={2} caption="Where each actuator type tends to appear on a current humanoid.">
+  <HumanoidMap />
+</Figure>
 
 ## 5. Hands moved to tendons
 

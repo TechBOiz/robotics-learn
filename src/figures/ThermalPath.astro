@@ -1,0 +1,27 @@
+---
+// Lumped thermal path from winding to ambient.
+const nodes = [
+  { x: 20, name: 'Winding', sub: 'where heat is made', cls: 'soft3' },
+  { x: 200, name: 'Stator iron', sub: 'seconds to warm', cls: 'soft1' },
+  { x: 380, name: 'Housing', sub: 'minutes to warm', cls: 'box' },
+  { x: 560, name: 'Ambient air', sub: 'or the robot frame', cls: 'soft2' },
+];
+const zig = (x: number) => `M${x} 60 h10 l5 -9 l10 18 l10 -18 l10 18 l10 -18 l5 9 h10`;
+---
+<svg class="fig" viewBox="0 0 700 150" role="img" aria-labelledby="tp-title tp-desc">
+  <title id="tp-title">Thermal path from the winding to ambient</title>
+  <desc id="tp-desc">Heat is generated in the winding and flows through the stator iron and the housing to the surrounding air, through a thermal resistance at each step. Each mass also stores heat, which is why short bursts above the continuous rating are possible.</desc>
+  {nodes.map((n) => (
+    <g>
+      <rect class={n.cls} x={n.x} y="32" width="120" height="56" rx="10" />
+      <text x={n.x + 60} y="57" text-anchor="middle" class="t-strong">{n.name}</text>
+      <text x={n.x + 60} y="75" text-anchor="middle" class="t-small t-muted">{n.sub}</text>
+    </g>
+  ))}
+  {[140, 320, 500].map((x) => <path class="wire" d={zig(x)} />)}
+  <text x="170" y="34" text-anchor="middle" class="t-small t-math">R₁</text>
+  <text x="350" y="34" text-anchor="middle" class="t-small t-math">R₂</text>
+  <text x="530" y="34" text-anchor="middle" class="t-small t-math">R₃</text>
+  <text x="20" y="118" class="t-small">Steady state: winding temperature rise = heat × (R₁ + R₂ + R₃). That sets <tspan class="t-c1">continuous torque</tspan>.</text>
+  <text x="20" y="138" class="t-small">Short bursts: the masses soak up heat first. That is what makes <tspan class="t-c3">peak torque</tspan> possible for a few seconds.</text>
+</svg>

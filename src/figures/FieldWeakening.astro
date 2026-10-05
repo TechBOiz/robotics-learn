@@ -1,0 +1,24 @@
+---
+// Torque and power against speed, with the field-weakening region.
+const X = (w: number) => 70 + w * 250; // w in units of base speed
+const hyper = Array.from({ length: 41 }, (_, i) => 1 + i * 0.03).map((w) => `${X(w).toFixed(1)},${(250 - 170 / w).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 680 310" role="img" aria-labelledby="fw-title fw-desc">
+  <title id="fw-title">Torque and power against speed with field weakening</title>
+  <desc id="fw-desc">Below base speed the drive can deliver full torque and power rises with speed. Above base speed the bus voltage is used up; negative d-axis current weakens the field so the motor can keep speeding up, with torque falling roughly as one over speed and power roughly constant.</desc>
+  <rect class="soft1" x="70" y="50" width="250" height="200" /><rect class="soft3" x="320" y="50" width="300" height="200" />
+  <polyline class="axis" points="70,36 70,250 630,250" />
+  <polyline class="c1 thick" points={`70,80 320,80 ${hyper}`} />
+  <polyline class="c2 thick dash" points="70,250 320,110 620,110" />
+  <line class="wire-muted dash" x1="320" y1="50" x2="320" y2="250" />
+  <text x="195" y="42" text-anchor="middle" class="t-small t-strong">constant-torque region</text>
+  <text x="470" y="42" text-anchor="middle" class="t-small t-strong">field-weakening region</text>
+  <text x="195" y="72" text-anchor="middle" class="t-small t-c1">torque</text>
+  <text x="540" y="102" text-anchor="middle" class="t-small t-c2">power ≈ constant</text>
+  <text x="560" y="182" text-anchor="middle" class="t-small t-c1">torque ∝ 1 / speed</text>
+  <text x="160" y="124" text-anchor="middle" class="t-small">i_d = 0</text><text x="160" y="140" text-anchor="middle" class="t-small t-muted">all current makes torque</text>
+  <text x="430" y="216" text-anchor="middle" class="t-small">i_d &lt; 0</text><text x="430" y="232" text-anchor="middle" class="t-small t-muted">some current fights the magnets</text>
+  <text x="320" y="268" text-anchor="middle" class="t-small t-muted">base speed</text>
+  <text x="350" y="296" text-anchor="middle" class="t-muted">Speed</text>
+  <text x="70" y="24" class="t-small t-muted">back-EMF reaches the bus voltage at base speed</text>
+</svg>

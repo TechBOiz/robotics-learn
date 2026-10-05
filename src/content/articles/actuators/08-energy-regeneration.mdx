@@ -1,0 +1,141 @@
+---
+title: "Energy regeneration and efficiency"
+summary: "A robot's actuators absorb energy almost as often as they supply it. When that energy can be recovered, when braking still costs power, where the recovered energy goes, and why it must be managed even if it saves little."
+category: actuators
+order: 8
+level: advanced
+updated: 2026-10-05
+tags: [actuators, regeneration, efficiency, power-electronics, cost-of-transport]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import StridePower from '../../../figures/StridePower.astro';
+import FourQuadrants from '../../../figures/FourQuadrants.astro';
+import RegenFlow from '../../../figures/RegenFlow.astro';
+import DcBusSharing from '../../../figures/DcBusSharing.astro';
+import BusVoltage from '../../../figures/BusVoltage.astro';
+
+Lowering a box, landing from a step, decelerating an arm, swinging a leg forward and stopping it: in all of these the actuator resists motion instead of causing it. The load is doing work on the motor. That energy goes somewhere — back to the battery, into another joint, or into heat.
+
+**Regeneration** is the first two. This article is about when it happens, how much it is worth, and why a robot's power system has to be designed for it either way.
+
+## Negative work is everywhere
+
+<Figure number={1} caption="Power at a leg joint across a stride. Roughly as much area can lie below the axis as above it.">
+  <StridePower />
+</Figure>
+
+Mechanical power at a joint is $P = \tau\,\omega$. When torque and velocity have opposite signs, $P$ is negative: the joint is absorbing energy. Steady walking on level ground does no net work on the world, so over a stride the positive and negative work at the joints roughly cancel, apart from losses. A legged robot that throws away all its negative work pays for every joule twice.
+
+## Four quadrants
+
+<Figure number={2} caption="Motoring and generating quadrants, with the wedge where braking still draws power.">
+  <FourQuadrants />
+</Figure>
+
+A motor and inverter are inherently bidirectional. Under [field-oriented control](/actuators/motor-drive-algorithms/), commanding torque that opposes rotation reverses the direction of power through the inverter with no special hardware.
+
+But the motor's own losses come first. Ignoring smaller terms, electrical power at the motor is:
+
+$$
+P_{\text{elec}} = \tau\,\omega + \left(\frac{\tau}{K_m}\right)^{2}
+$$
+
+The first term is mechanical power, negative when braking. The second is winding heat, always positive. Power only flows back to the bus when the sum is negative, which requires:
+
+$$
+|\omega| \;>\; \frac{|\tau|}{K_m^{2}}
+$$
+
+<Callout title="Braking can cost energy">
+Take a motor with $K_m = 0.2\ \text{N·m}/\sqrt{\text{W}}$ braking with 2 N·m. Regeneration starts only above $2 / 0.04 = 50$ rad/s. At 20 rad/s the load delivers 40 W, the winding dissipates 100 W, and the bus *supplies* the missing 60 W. Slow, forceful braking — lowering a heavy load gently, or simply holding it — consumes power.
+</Callout>
+
+This is the orange wedge in Figure 2. It is wide for motors with a low $K_m$ and for low gear ratios, where the motor turns slowly and carries high torque.
+
+## How much comes back
+
+<Figure number={3} caption="Losses compound in both directions. The efficiencies are illustrative.">
+  <RegenFlow />
+</Figure>
+
+Recovered energy passes through every stage a second time. With the plausible stage efficiencies in Figure 3, a joule of negative work at the joint that is later reused at a joint yields a little over half a joule.
+
+The transmission decides whether there is anything to recover at all. Negative work must drive the reducer *backwards*, and backward efficiency is lower than forward efficiency. For a simple friction model:
+
+$$
+\eta_{\text{back}} \approx 2 - \frac{1}{\eta_{\text{fwd}}}
+$$
+
+At 90% forward efficiency, about 89% comes back through. At 60%, only 33%. At 50% or below the mechanism is self-locking and returns nothing: all negative work becomes heat in the gears. This is why regeneration belongs with low-ratio, efficient transmissions, and why the MIT Cheetah team listed an energy-regenerative electronic system alongside high torque-density motors, a low-loss transmission and low leg inertia as its [four design principles](https://dspace.mit.edu/handle/1721.1/108096).
+
+## Where the energy goes
+
+<Figure number={4} caption="A shared DC bus. Power from a braking joint is consumed first by any joint that is driving.">
+  <DcBusSharing />
+</Figure>
+
+Returned power raises the DC bus voltage until something absorbs it. In order of preference:
+
+1. **Another joint.** On a shared bus, one joint's negative work feeds another's positive work directly. Nothing is converted or stored, so this is the most efficient outcome, and in a legged robot it happens constantly.
+2. **The battery.** Lithium cells accept charge, but the battery management system limits how fast — and limits it severely when the pack is full or cold.
+3. **Bus capacitors.** They absorb the fast edges, and very little energy. Raising a 2,000 µF bank from 48 V to 60 V stores
+
+   $$
+   \Delta E = \tfrac{1}{2}\,C\,(V_2^2 - V_1^2) = \tfrac{1}{2}(0.002)(60^2 - 48^2) \approx 1.3\ \text{J}
+   $$
+
+   A 10 kg robot dropping 0.3 m has about 29 J to get rid of.
+4. **A brake resistor.** When nothing else can take the power, a *brake chopper* switches a resistor across the bus and burns it.
+
+<Figure number={5} caption="What the bus does during a hard braking event. Without somewhere for the energy to go, the drive trips on over-voltage.">
+  <BusVoltage />
+</Figure>
+
+<Callout title="Design for it regardless" tone="caution">
+Regeneration is not optional. A backdrivable actuator returns power whenever it brakes fast enough, whether or not the system is ready. If the battery contactor is open or the pack refuses charge, bus voltage climbs within milliseconds. Every drive needs an over-voltage limit, and every bus needs a guaranteed sink.
+</Callout>
+
+## Recovering energy without electricity
+
+A spring stores and returns energy mechanically, skipping the motor, inverter and battery altogether. Animals do this with tendons, and robots do it with series or parallel elastic elements. A steel spring returns the great majority of what it stores, far better than the electrical round trip in Figure 3.
+
+The limitation is that a spring can only return energy on its own schedule, at its natural frequency and in the place it was stored. It suits rhythmic motion such as running, and helps little with irregular manipulation.
+
+## Measuring the result: cost of transport
+
+Locomotion efficiency is compared with a dimensionless number, the **cost of transport**:
+
+$$
+\text{CoT} = \frac{P}{m\,g\,v}
+$$
+
+the energy used per unit weight per unit distance. Lower is better. The MIT Cheetah, at 33 kg, reported a total cost of transport of 0.5 while trotting at 6 m/s — comparable to running animals of similar size ([Seok et al., 2015](https://dspace.mit.edu/handle/1721.1/108096)).
+
+## Is it worth it?
+
+It helps to be realistic about where the energy actually goes.
+
+- **Holding torque usually dominates.** A robot standing with bent legs does no work and turns its whole actuator budget into heat. Reducing that — straighter postures, a parallel spring, a brake for static holds — often saves more than regeneration recovers.
+- **Bus sharing is the main benefit.** Most recovered energy is used immediately by another joint. The fraction that completes a round trip through the battery is smaller.
+- **The losses still apply.** Even an efficient system returns little more than half.
+
+So regeneration is best seen as one part of an efficient design, and as something the electrical system must handle safely in every case.
+
+## Behaviour without power
+
+Backdrivability also shapes what a robot does when it is switched off.
+
+- **Shorting the motor phases** turns the motor into a damper: motion generates current, which dissipates in the windings. Many drives do this on a fault so a limb sinks slowly instead of dropping.
+- **A holding brake** is needed wherever a backdrivable joint must stay put unpowered, such as an arm raised over a workspace.
+- **Above base speed,** a drive that faults while field weakening can be back-fed through its diodes. Protection has to assume this.
+
+## What about hydraulics?
+
+A conventional servo-hydraulic actuator meters flow through a valve, and a valve controls by throttling — turning pressure into heat. Negative work is dissipated across the valve, and there is no path back to the pump. That inefficiency, more than force or speed, is a large part of why human-scale legged robots [moved to electric actuation](/actuators/recent-actuator-technologies/).
+
+## Sources
+
+1. Seok, S. et al. "Design Principles for Energy-Efficient Legged Locomotion and Implementation on the MIT Cheetah Robot." *IEEE/ASME Transactions on Mechatronics* 20(3), 2015. [MIT open-access copy](https://dspace.mit.edu/handle/1721.1/108096)
+2. Wensing, P. M. et al. "Proprioceptive Actuator Design in the MIT Cheetah." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183)
+3. Texas Instruments. *Sensored Field Oriented Control of 3-Phase Permanent Magnet Synchronous Motors.* Application Report SPRABQ2, 2013. [ti.com](https://www.ti.com/lit/an/sprabq2/sprabq2.pdf)

@@ -1,0 +1,27 @@
+---
+// Why large-radius motors win on torque density. Schematic.
+---
+<svg class="fig" viewBox="0 0 680 300" role="img" aria-labelledby="ms-title ms-desc">
+  <title id="ms-title">Two motors with the same active mass: long and narrow versus short and wide</title>
+  <desc id="ms-desc">Torque scales with gap radius squared times stack length, while active mass scales with radius times length. For the same mass, the wide, short motor produces more torque, in proportion to its radius.</desc>
+
+  <text x="150" y="22" text-anchor="middle" class="t-strong">Long and narrow</text>
+  <circle class="soft1 c1" stroke-width="1.6" cx="80" cy="120" r="44" /><circle class="surface" cx="80" cy="120" r="30" /><circle class="none c3" stroke-width="5" cx="80" cy="120" r="26" />
+  <line class="wire-muted" x1="80" y1="120" x2="108" y2="120" /><text x="94" y="114" text-anchor="middle" class="t-small t-math">r</text>
+  <rect class="soft1 c1" stroke-width="1.6" x="150" y="76" width="130" height="88" rx="4" />
+  <rect class="f3" x="150" y="94" width="130" height="52" opacity="0.5" />
+  <line class="wire-muted" x1="150" y1="180" x2="280" y2="180" /><text x="215" y="197" text-anchor="middle" class="t-small t-math">L (long)</text>
+  <text x="80" y="188" text-anchor="middle" class="t-small t-muted">end view</text>
+
+  <line class="grid" x1="330" y1="14" x2="330" y2="226" />
+
+  <text x="510" y="22" text-anchor="middle" class="t-strong">Short and wide ("pancake")</text>
+  <circle class="soft1 c1" stroke-width="1.6" cx="440" cy="126" r="92" /><circle class="surface" cx="440" cy="126" r="76" /><circle class="none c3" stroke-width="5" cx="440" cy="126" r="72" />
+  <line class="wire-muted" x1="440" y1="126" x2="514" y2="126" /><text x="477" y="120" text-anchor="middle" class="t-small t-math">r</text>
+  <rect class="soft1 c1" stroke-width="1.6" x="580" y="34" width="34" height="184" rx="4" />
+  <rect class="f3" x="580" y="52" width="34" height="148" opacity="0.5" />
+  <line class="wire-muted" x1="580" y1="230" x2="614" y2="230" /><text x="597" y="247" text-anchor="middle" class="t-small t-math">L (short)</text>
+
+  <text x="20" y="262" class="t-small"><tspan class="t-c1">blue</tspan>: stator and windings · <tspan class="t-c3">orange</tspan>: rotor magnets at the air gap</text>
+  <text x="20" y="286" class="t-strong">Torque ∝ r²·L  —  active mass ∝ r·L  —  so torque per kilogram ∝ r</text>
+</svg>

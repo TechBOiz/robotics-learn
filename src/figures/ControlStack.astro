@@ -1,0 +1,27 @@
+---
+// Nested control loops from behaviour to current.
+const layers = [
+  { x: 14, w: 150, name: 'Planner or policy', sub: 'what the body should do', rate: 'tens–hundreds of Hz', cls: 'soft4' },
+  { x: 196, w: 150, name: 'Whole-body control', sub: 'joint targets + feedforward', rate: '≈ 0.5–1 kHz', cls: 'soft2' },
+  { x: 378, w: 150, name: 'Joint loop', sub: 'kp, kd around position', rate: 'kHz, in the drive', cls: 'soft1' },
+  { x: 560, w: 146, name: 'Current loop (FOC)', sub: 'torque from current', rate: '≈ 10–40 kHz', cls: 'soft3' },
+];
+---
+<svg class="fig" viewBox="0 0 720 200" role="img" aria-labelledby="cs-title cs-desc">
+  <title id="cs-title">Nested control loops from behaviour down to motor current</title>
+  <desc id="cs-desc">Four layers, each running faster than the one above: a planner or learned policy, whole-body control, the joint loop with position and velocity gains, and the current loop running field-oriented control. Commands flow down and measurements flow back up.</desc>
+  <defs><marker id="ah-cs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  {layers.map((l, i) => (
+    <g>
+      <rect class={l.cls} x={l.x} y="46" width={l.w} height="78" rx="10" />
+      <text x={l.x + l.w / 2} y="72" text-anchor="middle" class="t-strong">{l.name}</text>
+      <text x={l.x + l.w / 2} y="91" text-anchor="middle" class="t-small">{l.sub}</text>
+      <text x={l.x + l.w / 2} y="111" text-anchor="middle" class="t-small t-muted">{l.rate}</text>
+      {i < 3 && <line class="wire" x1={l.x + l.w} y1="76" x2={l.x + l.w + 31} y2="76" marker-end="url(#ah-cs)" />}
+      {i < 3 && <line class="wire-muted dash" x1={l.x + l.w + 32} y1="100" x2={l.x + l.w + 1} y2="100" marker-end="url(#ah-cs)" />}
+    </g>
+  ))}
+  <text x="14" y="28" class="t-small t-muted">commands →  ·  ⇠ measurements  ·  slower on the left, faster on the right</text>
+  <text x="360" y="158" text-anchor="middle" class="t-strong">τ = k_p (q* − q) + k_d (q̇* − q̇) + τ_ff</text>
+  <text x="360" y="180" text-anchor="middle" class="t-small t-muted">The joint-level command used by most torque-controlled legged robots. Rates are typical, not fixed.</text>
+</svg>

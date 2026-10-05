@@ -1,0 +1,58 @@
+---
+// Three rotary reducers drawn face-on. Geometry is schematic, not to scale.
+const pt = (cx: number, cy: number, r: number, deg: number) => {
+  const a = (deg * Math.PI) / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+};
+// Planetary
+const P = { cx: 120, cy: 150 };
+const planets = [-90, 30, 150].map((d) => pt(P.cx, P.cy, 56, d));
+// Strain wave
+const S = { cx: 360, cy: 150 };
+// Cycloidal: 12 ring pins, 11 lobes, disc offset by the eccentricity
+const C = { cx: 600, cy: 150 };
+const pins = Array.from({ length: 12 }, (_, i) => pt(C.cx, C.cy, 84, i * 30));
+const ecc = 6;
+const disc = Array.from({ length: 181 }, (_, i) => {
+  const a = (i * 2 * Math.PI) / 180;
+  const r = 71 + 6.5 * Math.cos(11 * a);
+  return `${(C.cx + ecc + r * Math.cos(a)).toFixed(1)},${(C.cy + r * Math.sin(a)).toFixed(1)}`;
+}).join(' ');
+---
+<svg class="fig" viewBox="0 0 720 318" role="img" aria-labelledby="rt-title rt-desc">
+  <title id="rt-title">Planetary, strain wave and cycloidal reducers</title>
+  <desc id="rt-desc">Planetary: a sun gear drives three planets inside a fixed ring; the carrier joining the planets is the output. Strain wave: an elliptical wave generator presses a flexible toothed cup into a rigid ring at two opposite points. Cycloidal: an eccentric cam wobbles a lobed disc inside a ring of pins.</desc>
+
+  <text x={P.cx} y="24" text-anchor="middle" class="t-strong">Planetary</text>
+  <circle class="none axis" cx={P.cx} cy={P.cy} r="92" />
+  <circle class="none grid" cx={P.cx} cy={P.cy} r="86" stroke-dasharray="3 3" />
+  <polygon class="none c2 dash" stroke-width="1.6" points={planets.map((p) => p.join(',')).join(' ')} />
+  {planets.map(([x, y]) => <g><circle class="soft3 c3" stroke-width="1.6" cx={x} cy={y} r="30" /><circle class="f2" cx={x} cy={y} r="3.5" /></g>)}
+  <circle class="soft1 c1" stroke-width="1.6" cx={P.cx} cy={P.cy} r="26" />
+  <text x={P.cx} y={P.cy + 4} text-anchor="middle" class="t-small t-strong">sun</text>
+  <text x={P.cx} y="266" text-anchor="middle" class="t-small">ring gear — fixed · <tspan class="t-c3">planets</tspan> roll inside</text>
+  <text x={P.cx} y="284" text-anchor="middle" class="t-small t-c1">sun — input from motor</text>
+  <text x={P.cx} y="302" text-anchor="middle" class="t-small t-c2">carrier (dashed) — output</text>
+
+  <text x={S.cx} y="24" text-anchor="middle" class="t-strong">Strain wave</text>
+  <circle class="none axis" cx={S.cx} cy={S.cy} r="92" />
+  <ellipse class="none c3" stroke-width="3" cx={S.cx} cy={S.cy} rx="90" ry="78" />
+  <ellipse class="soft1 c1" stroke-width="1.6" cx={S.cx} cy={S.cy} rx="82" ry="70" />
+  <circle class="f1" cx={S.cx - 91} cy={S.cy} r="4" /><circle class="f1" cx={S.cx + 91} cy={S.cy} r="4" />
+  <text x={S.cx} y={S.cy - 4} text-anchor="middle" class="t-small t-strong">wave generator</text>
+  <text x={S.cx} y={S.cy + 12} text-anchor="middle" class="t-small">elliptical — input</text>
+  <text x={S.cx} y="266" text-anchor="middle" class="t-small">circular spline (outer ring) — fixed</text>
+  <text x={S.cx} y="284" text-anchor="middle" class="t-small t-c3">flexspline (orange) — output</text>
+  <text x={S.cx} y="302" text-anchor="middle" class="t-small t-muted">teeth mesh only at the two dots</text>
+
+  <text x={C.cx} y="24" text-anchor="middle" class="t-strong">Cycloidal</text>
+  <circle class="none axis" cx={C.cx} cy={C.cy} r="96" />
+  {pins.map(([x, y]) => <circle class="ink-fill" cx={x} cy={y} r="6" />)}
+  <polygon class="soft3 c3" stroke-width="1.6" points={disc} />
+  <circle class="soft1 c1" stroke-width="1.6" cx={C.cx + ecc} cy={C.cy} r="22" />
+  <circle class="f1" cx={C.cx} cy={C.cy} r="3.5" />
+  <text x={C.cx + ecc} y={C.cy + 40} text-anchor="middle" class="t-small">lobed disc</text>
+  <text x={C.cx} y="266" text-anchor="middle" class="t-small">ring of pins — fixed</text>
+  <text x={C.cx} y="284" text-anchor="middle" class="t-small t-c1">eccentric cam — input</text>
+  <text x={C.cx} y="302" text-anchor="middle" class="t-small t-c3">disc wobbles, turns slowly — output</text>
+</svg>

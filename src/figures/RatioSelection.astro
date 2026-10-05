@@ -1,0 +1,24 @@
+---
+// Winding heat and reflected inertia against gear ratio, for a fixed joint torque. Log-log.
+const X = (n: number) => 90 + 230 * Math.log10(n);
+const Y = (v: number) => 160 - 55 * Math.log10(v); // v relative to value at N = 10
+---
+<svg class="fig" viewBox="0 0 640 346" role="img" aria-labelledby="rs-title rs-desc">
+  <title id="rs-title">Winding heat and reflected inertia against gear ratio at a fixed joint torque</title>
+  <desc id="rs-desc">On log-log axes, winding heat falls with the square of gear ratio while reflected inertia rises with the square. The two lines cross; their product is constant for a given motor. Quasi-direct drive sits at low ratios where inertia is small and accepts more heat.</desc>
+  <rect class="soft1" x={X(5)} y="40" width={X(10) - X(5)} height="230" />
+  <text x={(X(5) + X(10)) / 2} y="262" text-anchor="middle" class="t-small t-strong">QDD</text>
+  {[-2, -1, 0, 1, 2].map((e) => <line class="grid" x1="90" y1={Y(10 ** e)} x2="570" y2={Y(10 ** e)} />)}
+  <polyline class="axis" points="90,36 90,270 576,270" />
+  <line class="c3" stroke-width="2.4" x1={X(1)} y1={Y(100)} x2={X(100)} y2={Y(0.01)} />
+  <line class="c1" stroke-width="2.4" x1={X(1)} y1={Y(0.01)} x2={X(100)} y2={Y(100)} />
+  <text x={X(1) + 12} y={Y(100) + 4} class="t-strong t-c3">Winding heat ∝ 1 / N²</text>
+  <text x={X(100) - 6} y={Y(100) - 8} text-anchor="end" class="t-strong t-c1">Reflected inertia ∝ N²</text>
+  <text x={X(10)} y={Y(40)} text-anchor="middle" class="t-small">the product of the two</text>
+  <text x={X(10)} y={Y(40) + 15} text-anchor="middle" class="t-small">is fixed by the motor: J / K²</text>
+  {[1, 10, 100].map((n) => <text x={X(n)} y="288" text-anchor="middle" class="t-small t-muted">{n}</text>)}
+  {[[100, '100×'], [10, '10×'], [1, '1×'], [0.1, '0.1×'], [0.01, '0.01×']].map(([v, l]) => <text x="82" y={Y(v as number) + 4} text-anchor="end" class="t-small t-muted">{l}</text>)}
+  <text x="330" y="316" text-anchor="middle" class="t-muted">Gear ratio N (log scale)</text>
+  <text x="22" y="155" transform="rotate(-90 22 155)" text-anchor="middle" class="t-muted">Relative to N = 10 (log scale)</text>
+  <text x="330" y="338" text-anchor="middle" class="t-small t-muted">Same joint torque demanded at every ratio.</text>
+</svg>

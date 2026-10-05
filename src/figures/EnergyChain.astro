@@ -1,0 +1,36 @@
+---
+// Static figure: the chain from stored energy to joint motion.
+const stages = [
+  { name: 'Energy source', sub: 'battery · pump', cls: 'soft2' },
+  { name: 'Drive', sub: 'inverter · valves', cls: 'soft4' },
+  { name: 'Motor', sub: 'makes force', cls: 'soft1' },
+  { name: 'Transmission', sub: 'trades speed for force', cls: 'soft3' },
+  { name: 'Joint', sub: 'moves the link', cls: 'box' },
+];
+const flows = ['DC power', 'phase currents', 'fast, weak', 'slow, strong'];
+const x = (i: number) => 14 + i * 142;
+---
+<svg class="fig" viewBox="0 0 720 214" role="img" aria-labelledby="ec-title ec-desc">
+  <title id="ec-title">The chain from stored energy to joint motion</title>
+  <desc id="ec-desc">Five stages in a row: energy source, drive, motor, transmission, joint. Power flows left to right, losing a little at each stage. Sensor signals flow back from the motor and joint to the drive.</desc>
+  <defs><marker id="ah-ec" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  {stages.map((s, i) => (
+    <g>
+      <rect class={s.cls} x={x(i)} y="44" width="124" height="62" rx="10" />
+      <text x={x(i) + 62} y="71" text-anchor="middle" class="t-strong">{s.name}</text>
+      <text x={x(i) + 62} y="90" text-anchor="middle" class="t-small t-muted">{s.sub}</text>
+    </g>
+  ))}
+  {flows.map((f, i) => (
+    <g>
+      <line class="wire" x1={x(i) + 124} y1="75" x2={x(i + 1) - 1} y2="75" marker-end="url(#ah-ec)" />
+      <text x={x(i) + 133} y="34" text-anchor="middle" class="t-small">{f}</text>
+      <line class="wire-muted dash" x1={x(i) + 133} y1="39" x2={x(i) + 133} y2="70" />
+    </g>
+  ))}
+  <text x="14" y="18" class="t-small t-muted">POWER →</text>
+  <path class="wire-muted dash" d="M644 106 V150 H218 V108" marker-end="url(#ah-ec)" />
+  <path class="wire-muted dash" d="M360 106 V150" />
+  <text x="431" y="170" text-anchor="middle" class="t-small">feedback: current · position · torque · temperature</text>
+  <text x="14" y="204" class="t-small t-muted">Each stage loses a little: switching loss in the drive, winding heat in the motor, friction in the transmission.</text>
+</svg>

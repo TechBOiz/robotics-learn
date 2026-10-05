@@ -1,0 +1,42 @@
+---
+// Half cross-section of a quasi-direct-drive module with the planetary stage nested inside the motor.
+---
+<svg class="fig" viewBox="0 0 700 330" role="img" aria-labelledby="qs-title qs-desc">
+  <title id="qs-title">Half cross-section of a quasi-direct-drive actuator</title>
+  <desc id="qs-desc">From the outside in: housing, stator with windings, air gap, rotor ring with magnets. The rotor drives a sun gear on the axis. Planet gears sit between the sun and a ring gear fixed to the housing, nested inside the motor. The planet carrier is the output. An encoder and the drive board sit at the back.</desc>
+  <!-- axis -->
+  <line class="wire-muted" stroke-dasharray="14 4 2 4" x1="60" y1="270" x2="640" y2="270" />
+  <text x="640" y="288" text-anchor="end" class="t-small t-muted">axis of rotation — only the upper half is drawn</text>
+  <!-- housing -->
+  <path class="box" d="M150 40 H470 V270 H458 V52 H162 V270 H150 Z" />
+  <!-- stator -->
+  <rect class="soft1 c1" stroke-width="1.4" x="200" y="58" width="200" height="42" rx="3" />
+  <text x="300" y="84" text-anchor="middle" class="t-small">stator + windings</text>
+  <!-- rotor -->
+  <rect class="f1" x="200" y="106" width="200" height="16" rx="2" opacity="0.8" />
+  <path class="f1" opacity="0.45" d="M200 122 H216 V232 H250 V262 H200 Z" />
+  <!-- sun -->
+  <rect class="soft3 c3" stroke-width="1.4" x="250" y="240" width="140" height="22" rx="2" />
+  <text x="320" y="256" text-anchor="middle" class="t-small">sun gear</text>
+  <!-- planet -->
+  <rect class="soft3 c3" stroke-width="1.4" x="250" y="176" width="140" height="60" rx="2" />
+  <text x="320" y="211" text-anchor="middle" class="t-small">planet gear</text>
+  <!-- ring -->
+  <rect class="box" x="250" y="136" width="170" height="36" rx="2" />
+  <rect class="box" x="420" y="52" width="38" height="120" />
+  <text x="335" y="159" text-anchor="middle" class="t-small">ring gear (fixed)</text>
+  <!-- carrier + output -->
+  <path class="soft2 c2" stroke-width="1.4" d="M396 180 H414 V200 H560 V262 H396 Z" />
+  <text x="486" y="236" text-anchor="middle" class="t-small t-strong">carrier → output</text>
+  <!-- electronics -->
+  <rect class="soft4 c4" stroke-width="1.4" x="168" y="62" width="10" height="200" rx="2" />
+  <rect class="box" x="182" y="246" width="14" height="16" rx="2" />
+  <!-- callouts -->
+  <line class="link" x1="300" y1="58" x2="300" y2="22" /><text x="300" y="16" text-anchor="middle" class="t-small">heat leaves through the housing</text>
+  <line class="link" x1="230" y1="114" x2="96" y2="114" /><text x="90" y="110" text-anchor="end" class="t-small t-strong">rotor</text><text x="90" y="125" text-anchor="end" class="t-small">magnets at a</text><text x="90" y="139" text-anchor="end" class="t-small">large radius</text>
+  <line class="link" x1="168" y1="190" x2="96" y2="190" /><text x="90" y="186" text-anchor="end" class="t-small t-strong">drive board</text><text x="90" y="201" text-anchor="end" class="t-small">inverter + FOC</text>
+  <line class="link" x1="184" y1="254" x2="96" y2="244" /><text x="90" y="240" text-anchor="end" class="t-small t-strong">encoder</text><text x="90" y="255" text-anchor="end" class="t-small">on the rotor</text>
+  <line class="link" x1="458" y1="100" x2="520" y2="86" /><text x="526" y="82" class="t-small t-strong">housing</text><text x="526" y="97" class="t-small">holds the ring gear,</text><text x="526" y="111" class="t-small">carries joint loads</text>
+  <line class="link" x1="560" y1="230" x2="596" y2="212" /><text x="600" y="200" class="t-small t-strong">to the link</text>
+  <text x="350" y="316" text-anchor="middle" class="t-small t-muted">The gear stage sits inside the rotor's bore, so the module is barely thicker than the motor alone.</text>
+</svg>

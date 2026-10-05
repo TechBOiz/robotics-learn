@@ -1,0 +1,29 @@
+---
+// Bus voltage during a regenerative braking event, with and without a brake chopper.
+const X = (t: number) => 80 + t * 54; // t in 0..10
+const Yp = (p: number) => 96 - p * 44;
+const Yv = (v: number) => 290 - (v - 44) * 6.2; // 44..62 V
+const power = [[0, 0.6], [3, 0.6], [3.4, -1], [6.2, -1], [6.6, 0.3], [10, 0.3]];
+const free = [[0, 48], [3, 48], [3.4, 48], [6.2, 61], [6.6, 61], [10, 57]];
+const clamp = [[0, 48], [3, 48], [3.4, 48], [4.9, 55], [6.2, 55], [6.6, 55], [10, 51]];
+const line = (pts: number[][], fy: (n: number) => number) => pts.map(([t, v]) => `${X(t).toFixed(1)},${fy(v).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 680 330" role="img" aria-labelledby="bv-title bv-desc">
+  <title id="bv-title">DC bus voltage during regenerative braking</title>
+  <desc id="bv-desc">Top: joint power is positive, then negative while the joint brakes, then positive again. Bottom: during braking the bus voltage climbs as returned energy charges the bus capacitance. Without protection it reaches the over-voltage trip level. With a brake chopper it is clamped at a set threshold and the excess is burned in a resistor.</desc>
+  <text x="80" y="22" class="t-small t-strong">Joint power</text>
+  <rect class="soft2" x={X(3.4)} y="40" width={X(6.2) - X(3.4)} height="262" />
+  <line class="axis" x1="80" y1={Yp(0)} x2="630" y2={Yp(0)} />
+  <polyline class="c1 thick" points={line(power, Yp)} />
+  <text x={X(1.5)} y={Yp(0.6) - 8} text-anchor="middle" class="t-small">driving</text>
+  <text x={X(4.8)} y={Yp(-1) - 8} text-anchor="middle" class="t-small t-c2">braking — power returns</text>
+  <text x="80" y="176" class="t-small t-strong">Bus voltage</text>
+  <line class="c3 dash" stroke-width="1.4" x1="80" y1={Yv(60)} x2="630" y2={Yv(60)} /><text x="634" y={Yv(60) + 4} class="t-small t-c3">trip</text>
+  <line class="wire-muted dash" x1="80" y1={Yv(55)} x2="630" y2={Yv(55)} /><text x="634" y={Yv(55) + 4} class="t-small t-muted">clamp</text>
+  <line class="grid" x1="80" y1={Yv(48)} x2="630" y2={Yv(48)} /><text x="72" y={Yv(48) + 4} text-anchor="end" class="t-small t-muted">nominal</text>
+  <polyline class="c3 thick" points={line(free, Yv)} />
+  <polyline class="c4 thick" points={line(clamp, Yv)} />
+  <text x={X(8.3)} y={Yv(60) - 20} text-anchor="middle" class="t-small t-c3">no protection: drive trips</text>
+  <text x={X(8.3)} y={Yv(52) + 16} text-anchor="middle" class="t-small t-c4">with brake chopper</text>
+  <line class="axis" x1="80" y1="302" x2="630" y2="302" /><text x="355" y="322" text-anchor="middle" class="t-muted">Time</text>
+</svg>

@@ -1,0 +1,35 @@
+---
+// Illustrative efficiency chain in both directions.
+const fwd: [string, number][] = [['Battery', 100], ['Inverter', 97], ['Motor', 87], ['Gearbox', 79]];
+const back: [string, string, number][] = [['Gearbox', '88 out', 3], ['Motor', '77 out', 2], ['Inverter', '75 out', 1], ['Battery', '71 stored', 0]];
+const x = (i: number) => 96 + i * 124;
+---
+<svg class="fig" viewBox="0 0 720 300" role="img" aria-labelledby="rf-title rf-desc">
+  <title id="rf-title">Energy remaining at each stage, motoring and regenerating</title>
+  <desc id="rf-desc">Illustrative numbers. Motoring: of 100 units leaving the battery, about 97 leave the inverter, 87 leave the motor and 79 reach the joint. Regenerating: of 100 units of negative work at the joint, about 88 pass the gearbox, 77 pass the motor, 75 pass the inverter and 71 are stored. Round trip: roughly 56 percent.</desc>
+  <defs><marker id="ah-rf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  <text x="14" y="34" class="t-strong t-c1">Motoring</text>
+  {fwd.map(([name, v], i) => (
+    <g>
+      <rect class="soft1" x={x(i)} y="50" width="100" height="52" rx="8" />
+      <text x={x(i) + 50} y="72" text-anchor="middle" class="t-small t-strong">{name}</text>
+      <text x={x(i) + 50} y="91" text-anchor="middle" class="t-small">{v} out</text>
+      <line class="wire" x1={x(i) + 100} y1="76" x2={x(i + 1) - 1} y2="76" marker-end="url(#ah-rf)" />
+    </g>
+  ))}
+  <rect class="box" x={x(4)} y="50" width="100" height="52" rx="8" /><text x={x(4) + 50} y="72" text-anchor="middle" class="t-small t-strong">Joint</text><text x={x(4) + 50} y="91" text-anchor="middle" class="t-small">79 delivered</text>
+
+  <text x="14" y="154" class="t-strong t-c2">Regenerating</text>
+  <rect class="box" x={x(4)} y="170" width="100" height="52" rx="8" /><text x={x(4) + 50} y="192" text-anchor="middle" class="t-small t-strong">Joint</text><text x={x(4) + 50} y="211" text-anchor="middle" class="t-small">100 absorbed</text>
+  {back.map(([name, label, i]) => (
+    <g>
+      <rect class="soft2" x={x(i)} y="170" width="100" height="52" rx="8" />
+      <text x={x(i) + 50} y="192" text-anchor="middle" class="t-small t-strong">{name}</text>
+      <text x={x(i) + 50} y="211" text-anchor="middle" class="t-small">{label}</text>
+      <line class="wire" x1={x(i + 1)} y1="196" x2={x(i) + 101} y2="196" marker-end="url(#ah-rf)" />
+    </g>
+  ))}
+  <text x="360" y="258" text-anchor="middle" class="t-strong">Round trip ≈ 0.79 × 0.71 ≈ 56%</text>
+  <text x="360" y="280" text-anchor="middle" class="t-small t-muted">Illustrative efficiencies: inverter 97%, motor 90% / 88%, gearbox 90% / 88%, battery charging 95%.</text>
+  <text x="360" y="295" text-anchor="middle" class="t-small t-muted">Real values depend strongly on speed and torque.</text>
+</svg>

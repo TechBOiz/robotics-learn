@@ -11,6 +11,7 @@ import Figure from '../../../components/Figure.astro';
 import Callout from '../../../components/Callout.astro';
 import ActuatorFamilies from '../../../figures/ActuatorFamilies.astro';
 import GearRatioTradeoff from '../../../figures/GearRatioTradeoff.astro';
+import Architectures from '../../../figures/Architectures.astro';
 
 Lists of actuator types tend to mix two different things. "Brushless motor" and "hydraulic cylinder" describe **where the force comes from**. "Series elastic" and "quasi-direct drive" describe **how that force is delivered to the joint**. A real actuator is one choice from each list — for example, a brushless motor (source) in a quasi-direct-drive arrangement (architecture).
 
@@ -64,6 +65,10 @@ Because nearly all robots use brushless motors, the more consequential choice is
 
 <Figure number={2} caption="Why architecture matters. On log axes, torque gained from gearing rises with N while reflected inertia rises with N². Typical gear-ratio ranges for three architectures are shaded.">
   <GearRatioTradeoff />
+</Figure>
+
+<Figure number={3} caption="Four of the architectures as block chains. Block size suggests relative motor and reducer size; it is not to scale.">
+  <Architectures />
 </Figure>
 
 ### High-ratio geared (stiff) actuators

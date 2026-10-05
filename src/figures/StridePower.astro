@@ -1,0 +1,22 @@
+---
+// Illustrative joint power over one stride, with positive and negative work shaded.
+const X = (t: number) => 80 + t * 540;
+const Y = (p: number) => 150 - p * 78;
+const f = (t: number) => 0.75 * Math.sin(2 * Math.PI * t + 0.3) + 0.55 * Math.sin(4 * Math.PI * t + 1.6);
+const ts = Array.from({ length: 201 }, (_, i) => i / 200);
+const curve = ts.map((t) => `${X(t).toFixed(1)},${Y(f(t)).toFixed(1)}`).join(' ');
+const area = (sign: number) => `M${X(0)} ${Y(0)} ` + ts.map((t) => `L${X(t).toFixed(1)} ${Y(sign * Math.max(0, sign * f(t))).toFixed(1)}`).join(' ') + ` L${X(1)} ${Y(0)} Z`;
+---
+<svg class="fig" viewBox="0 0 680 300" role="img" aria-labelledby="sp-title sp-desc">
+  <title id="sp-title">Joint power over one stride</title>
+  <desc id="sp-desc">An illustrative curve of mechanical power at a leg joint across one stride. It is positive when the joint pushes and negative when it absorbs energy, for example while braking the body at landing. The areas under the curve are positive work and negative work.</desc>
+  <path class="soft1" d={area(1)} /><path class="soft2" d={area(-1)} />
+  <line class="axis" x1="80" y1={Y(0)} x2="630" y2={Y(0)} /><line class="axis" x1="80" y1="30" x2="80" y2="268" />
+  <polyline class="wire thick" points={curve} />
+  <text x="72" y={Y(0) + 4} text-anchor="end" class="t-small t-muted">0</text>
+  <text x="26" y="150" transform="rotate(-90 26 150)" text-anchor="middle" class="t-muted">Joint power</text>
+  <text x={X(0.13)} y={Y(1.25)} text-anchor="middle" class="t-small t-strong t-c1">positive work</text><text x={X(0.13)} y={Y(1.25) + 15} text-anchor="middle" class="t-small">the actuator supplies it</text>
+  <text x={X(0.6)} y={Y(-1.32)} text-anchor="middle" class="t-small t-strong t-c2">negative work</text><text x={X(0.6)} y={Y(-1.32) + 15} text-anchor="middle" class="t-small">recoverable, or lost as heat</text>
+  <text x="80" y="286" class="t-small t-muted">touchdown</text><text x="630" y="286" text-anchor="end" class="t-small t-muted">next touchdown</text>
+  <text x="355" y="286" text-anchor="middle" class="t-small t-muted">one stride (illustrative shape)</text>
+</svg>

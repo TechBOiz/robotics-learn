@@ -1,0 +1,144 @@
+---
+title: "Designing the alternatives: springs, torque sensors, screws and tendons"
+summary: "When a joint needs more torque than quasi-direct drive can sustain, designers add a spring, a torque sensor, a screw or a cable. The design equations behind each, and what each one costs."
+category: actuators
+order: 6
+level: advanced
+updated: 2026-10-05
+tags: [actuators, series-elastic, torque-sensing, roller-screw, tendon, design]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import SeaModel from '../../../figures/SeaModel.astro';
+import TorqueLoop from '../../../figures/TorqueLoop.astro';
+import KneeLinkage from '../../../figures/KneeLinkage.astro';
+
+[Quasi-direct drive](/actuators/designing-a-quasi-direct-drive-actuator/) gets force control and impact tolerance by keeping the gear ratio low, and pays in heat. Many joints cannot afford that: an arm holding a payload at full reach, a humanoid knee carrying 70 kg, a finger with no room for a motor.
+
+Each alternative keeps a high effective ratio and recovers force control another way. This article covers the four that matter.
+
+## 1. Series elastic actuators
+
+<Figure number={1} caption="A series elastic actuator. The spring's deflection is the force measurement.">
+  <SeaModel />
+</Figure>
+
+Put a spring of stiffness $k$ between the reducer and the load, measure the angle on both sides, and joint torque is simply:
+
+$$
+\tau = k\,(\theta_1 - \theta_2)
+$$
+
+Force control becomes position control of the spring's deflection — something a geared motor does well. The single design variable is $k$, and it pulls in three directions.
+
+**Force resolution.** The smallest torque step you can sense is the stiffness times the encoder resolution, $\Delta\tau = k\,\Delta\theta$. A softer spring gives finer force sensing.
+
+**Small-signal bandwidth.** With the output held, the rotor's reflected inertia bounces on the spring at
+
+$$
+\omega_n = \sqrt{\frac{k}{N^2 J_m}}
+$$
+
+Force control gets difficult above this frequency. A stiffer spring raises it.
+
+**Large-force bandwidth.** To swing the force by amplitude $F$ at frequency $\omega$, the motor side must move the spring by $F/k$ at that frequency, which needs a peak speed of $F\omega/k$. Motor speed is limited, so:
+
+$$
+\omega_{\max} = \frac{k\,v_{\max}}{F}
+$$
+
+Large forces can only be modulated slowly, and a softer spring makes it worse.
+
+<Callout title="The trade">
+A soft spring gives clean, sensitive force control and good shock protection, but low bandwidth. A stiff spring behaves more like a rigid joint. There is no stiffness that maximises everything; it is chosen for the task.
+</Callout>
+
+Two further properties follow from the spring being physically there:
+
+- **Impacts are filtered before they reach the gears.** At frequencies beyond the controller's reach, the load feels only the spring. However high the gear ratio, the joint is never stiffer than $k$ to a sudden blow.
+- **Energy can be stored.** A spring holding $\tfrac{1}{2}k\,\Delta\theta^2$ returns it mechanically, with none of the losses of an [electrical round trip](/actuators/energy-regeneration/).
+
+A spring placed in *parallel* with the actuator does a different job: it carries a share of a steady load, such as gravity, so the motor does not have to.
+
+## 2. Torque-sensed geared joints
+
+<Figure number={2} caption="Torque control with a sensor after the reducer. This is the arrangement inside most torque-controlled collaborative arms.">
+  <TorqueLoop />
+</Figure>
+
+Keep the stiff, high-ratio reducer and add a strain-gauge torque sensor on its output. A fast inner loop then drives motor current until the *measured* joint torque matches the command.
+
+Feedback around the sensor does two useful things. It rejects reducer friction, which would otherwise corrupt torque by several percent of rated load. And it makes the rotor appear lighter than it is: with torque feedback gain $K$, the apparent motor inertia is reduced by roughly a factor of $1 + K$. This framework is developed in detail by [Albu-Schäffer, Ott and Hirzinger](https://journals.sagepub.com/doi/10.1177/0278364907073776).
+
+The limits are important:
+
+- **It only works within the loop's bandwidth.** In the first milliseconds of a collision the controller has not reacted, and the object feels the full, real reflected inertia. This is why collaborative arms are speed-limited and rounded, however good their torque control is.
+- **The sensor is itself a compliance.** A strain gauge needs something to strain, so the sensor adds a little flexibility and a resonance to manage.
+- **Sensors drift and cross-couple.** Temperature and off-axis loads leak into the reading and must be calibrated out.
+- **Cost.** A precision reducer plus a torque sensor in every joint is expensive.
+
+This design suits arms: high torque density, high positioning accuracy, and good force control for slow contact tasks such as assembly.
+
+## 3. Linear screw actuators and their linkages
+
+<Figure number={3} caption="A linear actuator across a knee. The moment arm, and so the effective gear ratio, changes with joint angle.">
+  <KneeLinkage />
+</Figure>
+
+A screw with lead $\ell$ turns motor torque into force, $F = 2\pi\eta\,\tau_m / \ell$. Acting on the joint through a moment arm $r$:
+
+$$
+\tau_j = F\,r = \frac{2\pi\,r}{\ell}\,\eta\,\tau_m
+\qquad\Rightarrow\qquad
+N_{\text{eq}} = \frac{2\pi\,r}{\ell}
+$$
+
+With a 50 mm moment arm and a 5 mm lead, the equivalent ratio is about **63:1**. A screw-driven leg is a high-ratio design. It gets its torque density from gearing, not from motor radius — the opposite bet to quasi-direct drive.
+
+For attachment distances $a$ and $b$ from the joint and an angle $\varphi$ between them, the geometry gives:
+
+$$
+r(\varphi) = \frac{a\,b\,\sin\varphi}{\sqrt{a^2 + b^2 - 2ab\cos\varphi}}
+$$
+
+The designer places the attachment points so that $r$ peaks where the joint needs most torque — for a knee, in a deep bend — and accepts a lower ratio, and therefore higher speed, near full extension.
+
+Design points specific to screws:
+
+- **Keep side loads off the screw.** A screw carries axial force well and bending badly. The actuator is mounted on pin or spherical joints at both ends so it only ever pushes and pulls.
+- **Force sensing needs help.** At these ratios, motor current is a poor torque estimate. Designs add a load cell in line with the rod, or close a fast loop around a joint-side sensor.
+- **Lead decides backdrivability.** A fine lead multiplies force and friction together. Rolling-element screws at 80–90% efficiency backdrive readily; a sliding lead screw below about 50% efficiency will not backdrive at all.
+- **Inverted roller screws shorten the package.** Cutting the thread inside a rotating nut lets the motor's rotor be the nut, so motor and screw share the same length.
+
+## 4. Tendons
+
+Hands move the motor away from the joint entirely. The governing equation is the capstan relation. A cable wrapped through a total angle $\theta$ over surfaces with friction coefficient $\mu$ loses tension as:
+
+$$
+\frac{T_{\text{out}}}{T_{\text{in}}} = e^{-\mu\theta}
+$$
+
+Loss depends on the *total angle the cable bends through*, not on its length, and it compounds exponentially. A tendon routed around several joints loses more with every bend, and the loss changes as those joints move. Design therefore centres on routing:
+
+- **Pulleys, not sliding guides,** wherever space allows, to replace sliding friction with rolling.
+- **Short, straight runs,** with the fewest possible direction changes between motor and finger.
+- **Tension sensing near the fingertip** if force must be known accurately, since motor current no longer reflects it.
+
+A joint needs force in both directions and a cable only pulls. The options are two tendons per joint working against each other, one tendon against a return spring, or a shared arrangement in which $n$ joints are driven by $n + 1$ tendons.
+
+## Choosing
+
+| If the joint must… | Lean toward | Because |
+|---|---|---|
+| survive repeated impacts and sense contact with no extra sensor | Quasi-direct drive | lowest reflected inertia |
+| absorb shock and store energy at a high gear ratio | Series elastic | the spring is always in the load path |
+| position precisely and control force in slow contact | Torque-sensed geared | stiff, accurate, sensor closes the loop |
+| produce very high force in a slim limb | Linear roller screw | high equivalent ratio, mass near the body |
+| fit where no motor can | Tendon | actuator relocated |
+
+## Sources
+
+1. Pratt, G. A. and Williamson, M. M. "Series elastic actuators." *IEEE/RSJ International Conference on Intelligent Robots and Systems*, 1995. [doi:10.1109/IROS.1995.525827](https://doi.org/10.1109/IROS.1995.525827)
+2. Albu-Schäffer, A., Ott, C. and Hirzinger, G. "A Unified Passivity-based Control Framework for Position, Torque and Impedance Control of Flexible Joint Robots." *International Journal of Robotics Research* 26(1), 2007. [doi:10.1177/0278364907073776](https://journals.sagepub.com/doi/10.1177/0278364907073776)
+3. "Roller screw." Wikipedia. [en.wikipedia.org/wiki/Roller_screw](https://en.wikipedia.org/wiki/Roller_screw)
+4. "What Robotics Experts Think of Tesla's Optimus Robot." *IEEE Spectrum*, 2022. [spectrum.ieee.org](https://spectrum.ieee.org/robotics-experts-tesla-bot-optimus) — on adding backdrivability to screw actuators with torque sensing and a fast loop.

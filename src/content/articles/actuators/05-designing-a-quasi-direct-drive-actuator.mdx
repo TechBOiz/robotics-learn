@@ -1,0 +1,175 @@
+---
+title: "Designing a quasi-direct-drive actuator"
+summary: "A design walk-through: from the forces a leg must produce, to motor geometry, gear ratio, the planetary stage, torque sensing from current, and the thermal limit that ends up defining the whole thing."
+category: actuators
+order: 5
+level: advanced
+updated: 2026-10-05
+tags: [actuators, quasi-direct-drive, design, thermal, planetary]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import MotorScaling from '../../../figures/MotorScaling.astro';
+import RatioSelection from '../../../figures/RatioSelection.astro';
+import QddSection from '../../../figures/QddSection.astro';
+import ThermalPath from '../../../figures/ThermalPath.astro';
+
+A quasi-direct-drive (QDD) actuator looks simple: a flat brushless motor, one planetary stage, an encoder and a drive board. The difficulty is in the numbers. Every choice trades winding heat against reflected inertia, and the design is finished when you have decided how much of each you can live with.
+
+This article walks through that decision in the order you would make it. It assumes the [fundamentals](/actuators/actuator-fundamentals/) and [transmissions](/actuators/transmissions/) articles.
+
+<Callout title="About the numbers" tone="caution">
+The worked example uses round, invented values chosen to be plausible for a small quadruped. They illustrate the method. They are not the specification of any real actuator.
+</Callout>
+
+## 1. Start from the leg, not the motor
+
+The requirement is a force at the foot. Joint torques follow from the leg's Jacobian $J(q)$:
+
+$$
+\tau = J(q)^{\mathsf T} F
+$$
+
+Take a 12 kg quadruped. In a trot two feet are on the ground, and peak vertical force per leg is well above static weight — say **200 N**. With the knee bent so the foot's line of force passes 0.1 m from the knee axis, the knee needs:
+
+$$
+\tau_{\text{peak}} = 200 \times 0.1 = 20\ \text{N·m}
+$$
+
+Standing still, each leg carries a quarter of the weight (about 30 N), which at a similar posture is about **3 N·m** — held indefinitely.
+
+Those two numbers, a brief peak and a sustained hold, are judged against two different limits. Keep both.
+
+## 2. Motor geometry: buy torque with radius
+
+The force a motor produces is a shear stress $\sigma$ acting on the air-gap surface. For gap radius $r$ and stack length $L$:
+
+$$
+\tau_m = \underbrace{\sigma \cdot 2\pi r L}_{\text{force}} \cdot r = 2\pi\,\sigma\,r^2 L
+$$
+
+The active material forms a thin ring, so its mass grows as $r L$. Dividing:
+
+$$
+\frac{\tau_m}{\text{mass}} \propto r
+$$
+
+<Figure number={1} caption="Two motors with the same active mass. The wide one has its magnets and windings at a larger radius, and makes proportionally more torque.">
+  <MotorScaling />
+</Figure>
+
+This is why QDD motors are wide and thin. For the same mass, doubling the radius roughly doubles the torque — which lets you halve the gear ratio.
+
+The same scaling applies to heat. The motor constant $K_m$, torque per square-root-watt of winding loss, also improves in proportion to $r$ at fixed mass. A large-radius motor makes the same torque with less heat.
+
+Radius is not free. The rotor is a ring of mass at radius $r$, so its inertia grows quickly, and a wide actuator is hard to package at a hip or inside a limb.
+
+## 3. Choose the gear ratio
+
+For a required joint torque $\tau_j$ and gear ratio $N$ with efficiency $\eta$, two quantities move in opposite directions:
+
+$$
+P_{\text{heat}} = \left(\frac{\tau_j}{N\,\eta\,K_m}\right)^{2}
+\qquad
+J_{\text{reflected}} = N^2 J_m
+$$
+
+<Figure number={2} caption="For a fixed joint torque, heat falls and reflected inertia rises as the square of gear ratio. Quasi-direct drive deliberately sits at the low-ratio end and pays in heat.">
+  <RatioSelection />
+</Figure>
+
+Multiply them and $N$ cancels:
+
+$$
+P_{\text{heat}} \times J_{\text{reflected}} = \frac{\tau_j^{2}}{\eta^{2}} \cdot \frac{J_m}{K_m^{2}}
+$$
+
+<Callout title="The key result">
+For a given joint torque, the product of winding heat and reflected inertia is set by one property of the motor: $J_m / K_m^2$. The gear ratio only chooses where you sit on that curve. A better motor moves the whole curve; a different ratio just slides along it.
+</Callout>
+
+Put numbers on it. Suppose the motor has $K_m = 0.2\ \text{N·m}/\sqrt{\text{W}}$ and $J_m = 7\times10^{-5}\ \text{kg·m}^2$, the gear stage is 90% efficient, and the lower leg's own inertia about the knee is about $6.7\times10^{-3}\ \text{kg·m}^2$.
+
+| Gear ratio | Motor torque at 20 N·m | Heat at 20 N·m | Reflected inertia | Relative to the link |
+|---|---|---|---|---|
+| 6:1 | 3.7 N·m | 343 W | 0.0025 kg·m² | 0.4× |
+| 9:1 | 2.5 N·m | 152 W | 0.0057 kg·m² | 0.85× |
+| 20:1 | 1.1 N·m | 31 W | 0.028 kg·m² | 4× |
+| 50:1 | 0.44 N·m | 5 W | 0.175 kg·m² | 26× |
+
+At 6:1 the rotor adds less than half the link's own inertia: the leg still behaves like a leg when it hits the ground. The price is 343 W of heat at peak, which the motor can only tolerate for moments. At 50:1 heat is negligible, and the foot is effectively attached to something 26 times heavier than the shin.
+
+Low ratios bring benefits beyond inertia that the product above does not capture: one gear stage instead of two or three means less friction, less backlash and higher efficiency in both directions. Those are what make current a trustworthy measure of torque.
+
+## 4. The planetary stage
+
+<Figure number={3} caption="A common QDD layout. Nesting the gear stage inside the rotor keeps the module thin.">
+  <QddSection />
+</Figure>
+
+With the ring gear fixed, the sun as input and the planet carrier as output, the ratio is:
+
+$$
+N = 1 + \frac{Z_{\text{ring}}}{Z_{\text{sun}}}
+$$
+
+Tooth counts are constrained by geometry:
+
+- **Coaxial fit:** $Z_{\text{ring}} = Z_{\text{sun}} + 2\,Z_{\text{planet}}$
+- **Even spacing of $n$ planets:** $(Z_{\text{sun}} + Z_{\text{ring}}) / n$ must be a whole number
+
+For 6:1 with three planets, 18 / 36 / 90 teeth works: $1 + 90/18 = 6$, $18 + 72 = 90$, and $(18 + 90)/3 = 36$.
+
+Two things size the gears. **Tooth strength** must cover impact torque, not just commanded torque — a foot strike drives the gear train from the output side. **Backlash** matters less than in an arm, because the leg is usually loaded in one direction, but it still shows up as a dead zone in force control near zero torque.
+
+## 5. Torque from current
+
+With little gearing, joint torque can be estimated without a sensor:
+
+$$
+\hat\tau_j \approx N\,\eta\,K_t\,i_q \;-\; \tau_{\text{friction}}(\dot q)
+$$
+
+where $i_q$ is the torque-producing current from the [drive's control loop](/actuators/motor-drive-algorithms/). The estimate degrades in predictable ways:
+
+- **Friction and cogging** are the main errors at low torque. Both can be mapped and compensated.
+- **Saturation.** At high current the iron saturates and $K_t$ drops, so the same current makes less torque. A lookup table corrects it.
+- **Temperature.** Hot magnets are weaker, so $K_t$ falls a few percent as the motor warms.
+- **Acceleration.** During fast motion some motor torque goes into spinning the rotor. Subtract $N^2 J_m \ddot q$ when it matters.
+
+None of these needs a strain gauge. That, and the bandwidth of a current loop running at tens of kilohertz, is the practical meaning of "proprioceptive".
+
+## 6. The thermal limit
+
+A QDD actuator almost always runs out of temperature before it runs out of anything else.
+
+<Figure number={4} caption="Heat has to cross several resistances to leave. The thermal mass along the way is what lets the motor exceed its continuous rating briefly.">
+  <ThermalPath />
+</Figure>
+
+In the example, holding 3 N·m at 6:1 costs $(3 / (6 \times 0.9 \times 0.2))^2 \approx 8\ \text{W}$ per joint, continuously, for doing no mechanical work. That is easily carried away. Holding a deep crouch at 10 N·m costs about 86 W, which a small sealed module cannot shed for long.
+
+Design responses, roughly in order of effectiveness:
+
+1. **Give heat a short path out.** Press or bond the stator into an aluminium housing and bolt that housing to the robot's frame.
+2. **Measure winding temperature** and model it, so the controller can use the full short-term capacity safely and back off before damage.
+3. **Choose postures that need less torque.** Straighter legs carry weight through the structure, not the motors.
+4. **Raise the ratio slightly** for joints that hold load most of the time. Knees often get more reduction than hips for this reason.
+
+## 7. Electrical choices
+
+- **Bus voltage sets top speed.** Back-EMF rises with speed until it meets the bus voltage. A higher bus, or a winding with fewer turns, extends the speed range.
+- **Rewinding does not change $K_m$.** More turns raise $K_t$ and resistance together; the torque per watt of heat is unchanged. The winding is chosen to match the bus voltage and the inverter's current rating, not to gain torque.
+- **Inverter current sets peak torque.** The power stage must supply the peak current for as long as the thermal budget allows it.
+
+## What QDD is not good at
+
+- **Sustained high torque.** Anything that holds a heavy load for minutes favours more gearing, a spring or a brake.
+- **Stiff, precise positioning under load.** Low reduction means low output stiffness and visible backlash.
+- **Small diameters.** The architecture depends on radius. Where the joint must be slim, a [different design](/actuators/designing-the-alternatives/) fits better.
+
+## Sources
+
+1. Wensing, P. M., Wang, A., Seok, S., Otten, D., Lang, J. and Kim, S. "Proprioceptive Actuator Design in the MIT Cheetah: Impact Mitigation and High-Bandwidth Physical Interaction for Dynamic Legged Robots." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183) — motor scaling with gap radius and the case for low gear ratios.
+2. Seok, S. et al. "Design Principles for Energy-Efficient Legged Locomotion and Implementation on the MIT Cheetah Robot." *IEEE/ASME Transactions on Mechatronics* 20(3), 2015. [MIT open-access copy](https://dspace.mit.edu/handle/1721.1/108096) — high torque-density motors, low-loss transmission and low leg inertia as design principles.
+3. Katz, B. G. *A low cost modular actuator for dynamic robots.* S.M. thesis, MIT, 2018. [dspace.mit.edu](https://dspace.mit.edu/handle/1721.1/118671) — a complete, documented QDD module design.

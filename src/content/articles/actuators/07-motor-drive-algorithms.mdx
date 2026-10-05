@@ -1,0 +1,177 @@
+---
+title: "Motor drive algorithms: from six-step to field-oriented control"
+summary: "How a torque request becomes transistor timings. Commutation, the Clarke and Park transforms, the current loop, modulation, field weakening, and the joint-level control that sits on top."
+category: actuators
+order: 7
+level: advanced
+updated: 2026-10-05
+tags: [actuators, motor-control, foc, pwm, impedance-control]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import Inverter from '../../../figures/Inverter.astro';
+import Commutation from '../../../figures/Commutation.astro';
+import FocLoop from '../../../figures/FocLoop.astro';
+import DqFrame from '../../../figures/DqFrame.astro';
+import FieldWeakening from '../../../figures/FieldWeakening.astro';
+import ControlStack from '../../../figures/ControlStack.astro';
+
+A brushless motor does nothing useful when connected to a battery. It needs a **drive** that decides, tens of thousands of times a second, which of six transistors should be on. The algorithm making that decision determines how smooth, efficient and controllable the torque is — and whether motor current can be trusted as a measure of joint torque.
+
+## The hardware every algorithm shares
+
+<Figure number={1} caption="A three-phase inverter. All of the algorithms below are different rules for timing these six switches.">
+  <Inverter />
+</Figure>
+
+Each phase connects to the midpoint of a pair of switches. Turning the upper switch on for a fraction $d$ of each cycle and the lower one for the rest gives an average phase voltage of $d \cdot V_{\text{bus}}$. This is **pulse-width modulation (PWM)**. The motor's inductance smooths the resulting current, so at switching frequencies of typically 10–40 kHz the winding sees something close to the average.
+
+One more fact is needed. A rotor with $p$ pole pairs passes through $p$ electrical cycles per mechanical turn:
+
+$$
+\theta_e = p\,\theta_m
+$$
+
+All commutation is done in electrical angle.
+
+## Six-step commutation
+
+The simplest scheme divides the electrical cycle into six 60° sectors, usually detected by three Hall sensors. In each sector two phases carry current and the third floats.
+
+<Figure number={2} caption="One phase's current, and the resulting torque, under each scheme. The six-step dips assume a motor with sinusoidal back-EMF.">
+  <Commutation />
+</Figure>
+
+It needs almost no computation and only coarse position sensing. The cost is that the current vector jumps in 60° steps instead of turning smoothly with the rotor, so it is misaligned by up to 30° and torque dips by a factor of $\cos 30^\circ \approx 0.87$ six times per electrical cycle.
+
+For a fan or a drone propeller that ripple is irrelevant. For a robot joint it becomes vibration, noise and a force-control error.
+
+## Field-oriented control
+
+Torque is greatest when the stator's magnetic field is exactly 90 electrical degrees ahead of the rotor's. **Field-oriented control (FOC)** keeps it there continuously, by doing its arithmetic in a reference frame that turns with the rotor.
+
+<Figure number={3} caption="The d–q frame. FOC regulates the two components of current separately.">
+  <DqFrame />
+</Figure>
+
+### Two transforms
+
+The **Clarke transform** turns three phase currents into two perpendicular components in the stator's frame. Because the three currents sum to zero, two measurements suffice:
+
+$$
+i_\alpha = i_a \qquad i_\beta = \frac{i_a + 2\,i_b}{\sqrt{3}}
+$$
+
+The **Park transform** rotates those by the electrical angle into the rotor's frame:
+
+$$
+\begin{aligned}
+i_d &= \phantom{-}i_\alpha\cos\theta_e + i_\beta\sin\theta_e \\
+i_q &= -i_\alpha\sin\theta_e + i_\beta\cos\theta_e
+\end{aligned}
+$$
+
+Seen from the rotor, the sinusoidal phase currents become two steady numbers. That is the whole point: a controller regulating constants is far easier to build than one tracking sine waves at hundreds of hertz.
+
+### Torque in the d–q frame
+
+For a surface-magnet motor with magnet flux linkage $\lambda$:
+
+$$
+\tau = \tfrac{3}{2}\,p\,\lambda\,i_q
+$$
+
+Torque is proportional to $i_q$ alone. Current along $d$ produces heat and no torque, so it is normally regulated to zero. (Motors with buried magnets have different inductances on the two axes, which adds a second term, $\tfrac{3}{2}p\,(L_d - L_q)\,i_d\,i_q$, and makes a little negative $i_d$ worthwhile.)
+
+### The loop
+
+<Figure number={4} caption="Field-oriented control. The measured currents travel anticlockwise through Clarke and Park; the voltage commands travel back through the inverse transform to the inverter.">
+  <FocLoop />
+</Figure>
+
+Each PWM cycle the drive:
+
+1. samples two phase currents and the rotor angle,
+2. applies Clarke and Park to get $i_d$ and $i_q$,
+3. runs two PI controllers to produce voltage commands $v_d$ and $v_q$,
+4. rotates those back to the stator frame with the inverse Park transform,
+5. converts them to three duty cycles.
+
+The two axes are not quite independent. The voltage equations show a speed-dependent cross-coupling:
+
+$$
+\begin{aligned}
+v_d &= R\,i_d + L_d\,\frac{di_d}{dt} - \omega_e L_q\,i_q \\
+v_q &= R\,i_q + L_q\,\frac{di_q}{dt} + \omega_e\,(L_d\,i_d + \lambda)
+\end{aligned}
+$$
+
+The last term in each line is known, so good drives add it as feedforward and leave the PI controllers only the $R$–$L$ dynamics. A standard tuning then cancels the winding's pole: for a target bandwidth $\omega_c$, set $K_p = L\,\omega_c$ and $K_i = R\,\omega_c$.
+
+<Callout title="Why robots care">
+With FOC, torque is a clean linear function of one regulated number, $i_q$, with a bandwidth in the kilohertz range. That is what lets a quasi-direct-drive joint treat the motor as a torque source and skip the force sensor.
+</Callout>
+
+## Modulation
+
+The last step turns a desired voltage vector into switch timings. **Sinusoidal PWM** compares three sine references against a triangle wave. **Space-vector PWM** (SVPWM) reaches the same vector by time-averaging the inverter's eight possible switch states, which effectively lets the three phases share a common offset. It delivers $2/\sqrt{3} \approx 1.15$ times the line voltage from the same bus — about 15% more speed for free — and is the usual choice.
+
+## Field weakening
+
+<Figure number={5} caption="Above base speed the drive trades torque for speed by opposing the magnets with negative d-axis current.">
+  <FieldWeakening />
+</Figure>
+
+Back-EMF grows with speed until the inverter has no voltage left to push current. Driving $i_d$ negative creates a field that opposes the magnets, lowers the back-EMF the drive must overcome, and allows speed beyond that limit.
+
+It costs current that makes no torque, so it lowers efficiency. It also carries a hazard: if the drive shuts down while the motor is spinning above base speed, the unweakened back-EMF can exceed the bus voltage and force current back through the inverter's diodes.
+
+## What the drive needs to measure
+
+**Current.** Usually with shunt resistors, either in the low-side legs (cheap, but only readable while the low switch conducts) or in line with the phases (more expensive, readable at any time). Sampling is synchronised to the centre of the PWM period, where switching noise is lowest.
+
+**Rotor angle.** Robot joints need full torque at zero speed, which rules out the back-EMF estimators used in sensorless drives for pumps and fans — there is no back-EMF to observe when stationary. Joints therefore carry an encoder on the rotor: typically a magnetic absolute encoder, sometimes optical or inductive.
+
+## Other strategies
+
+| Strategy | Idea | Where it fits |
+|---|---|---|
+| Six-step | Energise two phases per 60° sector | Fans, pumps, propellers, low-cost drives |
+| Field-oriented control | Regulate d and q currents with PI loops | Robot joints, servo drives, traction |
+| Direct torque control | Pick switch states directly from torque and flux error, with hysteresis bands | Very fast torque response; more ripple |
+| Model-predictive current control | Evaluate the next switch state against a motor model each cycle | Research and high-performance drives |
+
+## Above the current loop
+
+<Figure number={6} caption="The control stack. Each layer treats the one to its right as an ideal actuator, which holds only because that layer is much faster.">
+  <ControlStack />
+</Figure>
+
+The current loop turns the motor into a torque source. What commands that torque depends on the kind of robot.
+
+**Industrial servos** wrap a velocity loop and then a position loop around the current loop, with high gains. The joint goes where it is told and rejects disturbances stiffly.
+
+**Torque-controlled robots** send each joint a desired position, velocity and feedforward torque, with two gains:
+
+$$
+\tau = k_p\,(q^* - q) + k_d\,(\dot q^* - \dot q) + \tau_{\text{ff}}
+$$
+
+This single law covers every mode. Large $k_p$ gives position control. $k_p = k_d = 0$ gives pure torque control. $k_p = 0$ with some $k_d$ gives a damper. Small gains with a feedforward torque from a dynamics model give compliant, accurate tracking — a joint-space form of [Hogan's impedance control](https://doi.org/10.1115/1.3140702).
+
+It is the low-level interface exposed by current legged robots; Unitree's, for example, takes exactly these five quantities per joint ([interface documentation](https://github.com/inria-paris-robotics-lab/unitree_control_interface)). The law runs inside the drive, at kilohertz rates, so the stabilising $k_d$ term is not delayed by the trip to the main computer and back.
+
+## Compensations that matter in practice
+
+- **Cogging.** The rotor's magnets prefer certain positions. A calibration pass records the torque needed to hold each angle and feeds it forward.
+- **Dead time.** Both switches in a leg must briefly be off during each transition. This distorts the voltage at low speed and is corrected from the sign of the phase current.
+- **Saturation.** At high current $K_t$ falls. A lookup table restores a linear torque response.
+- **Friction.** A model of gear friction, fed forward, removes much of the dead zone around zero torque.
+
+## Sources
+
+1. Texas Instruments. *Sensored Field Oriented Control of 3-Phase Permanent Magnet Synchronous Motors.* Application Report SPRABQ2, 2013. [ti.com](https://www.ti.com/lit/an/sprabq2/sprabq2.pdf)
+2. Texas Instruments. *Clarke &amp; Park Transforms on the TMS320C2xx.* Application Report BPRA048. [ti.com](https://www.ti.com/lit/an/bpra048/bpra048.pdf)
+3. Hogan, N. "Impedance Control: An Approach to Manipulation: Part I — Theory." *Journal of Dynamic Systems, Measurement, and Control* 107(1), 1985. [doi:10.1115/1.3140702](https://doi.org/10.1115/1.3140702)
+4. Katz, B. G. *A low cost modular actuator for dynamic robots.* S.M. thesis, MIT, 2018. [dspace.mit.edu](https://dspace.mit.edu/handle/1721.1/118671) — a full drive and joint-controller implementation for a legged-robot actuator.
+5. Inria Paris Robotics Lab. *unitree_control_interface.* [github.com](https://github.com/inria-paris-robotics-lab/unitree_control_interface) — joint command fields for Unitree G1 and Go2.

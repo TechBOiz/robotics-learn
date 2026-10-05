@@ -1,0 +1,24 @@
+---
+// Lumped model of a series elastic actuator.
+---
+<svg class="fig" viewBox="0 0 700 214" role="img" aria-labelledby="sm-title sm-desc">
+  <title id="sm-title">Model of a series elastic actuator</title>
+  <desc id="sm-desc">A motor and reducer drive one end of a spring. The other end of the spring is attached to the load. Encoders on each side of the spring measure its deflection, which gives the force. A shock at the load is absorbed by the spring before it reaches the gears.</desc>
+  <defs><marker id="ah-sm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  <rect class="soft1 c1" stroke-width="1.4" x="20" y="60" width="110" height="70" rx="8" />
+  <text x="75" y="91" text-anchor="middle" class="t-strong">Motor</text><text x="75" y="109" text-anchor="middle" class="t-small t-muted">rotor inertia</text>
+  <rect class="soft3 c3" stroke-width="1.4" x="136" y="52" width="120" height="86" rx="8" />
+  <text x="196" y="91" text-anchor="middle" class="t-strong">Reducer</text><text x="196" y="109" text-anchor="middle" class="t-small t-muted">ratio N</text>
+  <polyline class="c2 thick" points="256,95 276,95 284,74 300,116 316,74 332,116 348,74 364,116 380,74 396,116 404,95 424,95" />
+  <text x="340" y="56" text-anchor="middle" class="t-strong t-c2">Spring, stiffness k</text>
+  <rect class="box" x="424" y="70" width="170" height="50" rx="25" />
+  <text x="509" y="100" text-anchor="middle" class="t-strong">Load (link)</text>
+  <line class="wire" x1="680" y1="95" x2="600" y2="95" marker-end="url(#ah-sm)" />
+  <text x="640" y="84" text-anchor="middle" class="t-small">impact</text>
+  <!-- encoders -->
+  <line class="wire-muted dash" x1="262" y1="138" x2="262" y2="166" /><line class="wire-muted dash" x1="418" y1="124" x2="418" y2="166" />
+  <text x="262" y="182" text-anchor="middle" class="t-small">encoder: θ₁</text>
+  <text x="418" y="182" text-anchor="middle" class="t-small">encoder: θ₂</text>
+  <text x="340" y="204" text-anchor="middle" class="t-strong">torque = k · (θ₁ − θ₂)</text>
+  <text x="20" y="30" class="t-small t-muted">The spring is the force sensor, the shock absorber and an energy store.</text>
+</svg>

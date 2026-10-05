@@ -1,0 +1,27 @@
+---
+// Phase current and resulting torque: six-step versus sinusoidal (FOC) commutation.
+const X = (deg: number) => 70 + (deg / 720) * 580;
+const step = (deg: number) => { const d = ((deg % 360) + 360) % 360; return d >= 30 && d < 150 ? 1 : d >= 210 && d < 330 ? -1 : 0; };
+const sixPts: string[] = []; let prev = step(0);
+for (let d = 0; d <= 720; d += 1) { const v = step(d); if (v !== prev) sixPts.push(`${X(d).toFixed(1)},${(84 - prev * 44).toFixed(1)}`); sixPts.push(`${X(d).toFixed(1)},${(84 - v * 44).toFixed(1)}`); prev = v; }
+const sine = Array.from({ length: 181 }, (_, i) => i * 4).map((d) => `${X(d).toFixed(1)},${(84 - 44 * Math.sin((d * Math.PI) / 180)).toFixed(1)}`).join(' ');
+// six-step torque with sinusoidal back-EMF: ripples between cos(30°) and 1 every 60°
+const ripple = Array.from({ length: 361 }, (_, i) => i * 2).map((d) => { const m = (((d % 60) + 60) % 60) - 30; return `${X(d).toFixed(1)},${(262 - 62 * Math.cos((m * Math.PI) / 180)).toFixed(1)}`; }).join(' ');
+---
+<svg class="fig" viewBox="0 0 680 300" role="img" aria-labelledby="cm-title cm-desc">
+  <title id="cm-title">Six-step and sinusoidal commutation compared</title>
+  <desc id="cm-desc">Top: current in one phase over two electrical revolutions. Six-step commutation gives a stepped waveform, on for 120 degrees and off for 60. Sinusoidal commutation gives a smooth sine. Bottom: the resulting torque. Six-step torque dips about 13 percent six times per electrical revolution; sinusoidal torque is constant.</desc>
+  <text x="70" y="22" class="t-small t-strong">Current in one phase</text>
+  <line class="axis" x1="70" y1="84" x2="650" y2="84" />
+  <polyline class="c3" fill="none" stroke-width="2" points={sixPts.join(' ')} />
+  <polyline class="c1" fill="none" stroke-width="2.2" points={sine} />
+  <text x="70" y="168" class="t-small t-strong">Torque</text>
+  <line class="axis" x1="70" y1="262" x2="650" y2="262" />
+  <line class="c1" stroke-width="2.2" x1="70" y1="200" x2="650" y2="200" />
+  <polyline class="c3" fill="none" stroke-width="2" points={ripple} />
+  {[0, 180, 360, 540, 720].map((d) => <text x={X(d)} y="280" text-anchor="middle" class="t-small t-muted">{d}°</text>)}
+  <text x="360" y="296" text-anchor="middle" class="t-small t-muted">electrical angle</text>
+  <text x="650" y="22" text-anchor="end" class="t-small"><tspan class="t-c3">— six-step</tspan>   <tspan class="t-c1">— sinusoidal (FOC)</tspan></text>
+  <text x="650" y="192" text-anchor="end" class="t-small t-c1">constant</text>
+  <text x="650" y="228" text-anchor="end" class="t-small t-c3">≈13% dips, six per electrical turn</text>
+</svg>

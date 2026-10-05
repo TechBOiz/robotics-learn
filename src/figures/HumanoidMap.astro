@@ -1,0 +1,48 @@
+---
+// Where each actuator type tends to appear on a current humanoid. Schematic.
+const joints = [
+  [360, 96], [300, 100], [420, 100], [282, 168], [438, 168], [272, 232], [448, 232],
+  [336, 214], [384, 214], [330, 292], [390, 292], [326, 368], [394, 368],
+];
+---
+<svg class="fig" viewBox="0 0 720 410" role="img" aria-labelledby="hm-title hm-desc">
+  <title id="hm-title">Typical actuator choices by body region on a humanoid robot</title>
+  <desc id="hm-desc">Hands: tendon-driven fingers with motors in the forearm. Arms and waist: rotary joint modules with strain wave or planetary reducers. Hips, knees and ankles: either linear roller-screw actuators or quasi-direct-drive rotary modules.</desc>
+  <!-- body -->
+  <circle class="box" cx="360" cy="52" r="24" />
+  <rect class="box" x="306" y="86" width="108" height="124" rx="18" />
+  <path class="wire thick" d="M300 100 L282 168 L272 232 M420 100 L438 168 L448 232" />
+  <path class="wire thick" d="M336 214 L330 292 L326 368 M384 214 L390 292 L394 368" />
+  <path class="wire thick" d="M326 368 H300 M394 368 H420" />
+  <path class="c4 thick" d="M272 232 l-8 20 M272 232 l-1 22 M272 232 l7 20 M448 232 l8 20 M448 232 l1 22 M448 232 l-7 20" />
+  {joints.map(([x, y]) => <circle class="surface c1" stroke-width="2" cx={x} cy={y} r="6" />)}
+  <!-- leg linear actuators -->
+  <line class="c3" stroke-width="5" stroke-linecap="round" x1="344" y1="226" x2="340" y2="280" />
+  <line class="c3" stroke-width="5" stroke-linecap="round" x1="376" y1="226" x2="380" y2="280" />
+  <line class="c3" stroke-width="5" stroke-linecap="round" x1="338" y1="304" x2="335" y2="356" />
+  <line class="c3" stroke-width="5" stroke-linecap="round" x1="382" y1="304" x2="385" y2="356" />
+
+  <!-- callouts left -->
+  <line class="link" x1="262" y1="244" x2="212" y2="244" />
+  <text x="204" y="234" text-anchor="end" class="t-strong t-c4">Hands</text>
+  <text x="204" y="252" text-anchor="end" class="t-small">tendon-driven fingers,</text>
+  <text x="204" y="267" text-anchor="end" class="t-small">motors in the forearm</text>
+
+  <line class="link" x1="274" y1="168" x2="212" y2="132" />
+  <text x="204" y="112" text-anchor="end" class="t-strong t-c1">Shoulder · elbow · wrist</text>
+  <text x="204" y="130" text-anchor="end" class="t-small">rotary joint modules:</text>
+  <text x="204" y="145" text-anchor="end" class="t-small">strain wave or planetary</text>
+
+  <!-- callouts right -->
+  <line class="link" x1="418" y1="196" x2="508" y2="150" />
+  <text x="516" y="136" class="t-strong t-c1">Waist · neck</text>
+  <text x="516" y="154" class="t-small">rotary joint modules</text>
+
+  <line class="link" x1="398" y1="292" x2="508" y2="262" />
+  <text x="516" y="240" class="t-strong t-c3">Hip · knee · ankle</text>
+  <text x="516" y="258" class="t-small">linear roller-screw actuators</text>
+  <text x="516" y="273" class="t-small">driving the joint through a linkage,</text>
+  <text x="516" y="288" class="t-small">or quasi-direct-drive rotary modules</text>
+
+  <text x="360" y="402" text-anchor="middle" class="t-small t-muted">A generalised picture. Individual robots differ, and several use rotary modules throughout.</text>
+</svg>

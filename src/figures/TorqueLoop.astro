@@ -1,0 +1,21 @@
+---
+// Joint torque control with a sensor after the reducer.
+---
+<svg class="fig" viewBox="0 0 700 190" role="img" aria-labelledby="tl2-title tl2-desc">
+  <title id="tl2-title">Closed-loop joint torque control with a torque sensor after the reducer</title>
+  <desc id="tl2-desc">Desired torque is compared with torque measured after the reducer. A controller drives the motor to remove the error, which cancels most reducer friction and makes the rotor feel lighter, up to the bandwidth of the loop.</desc>
+  <defs><marker id="ah-tl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  <text x="14" y="70" class="t-small">desired</text><text x="14" y="85" class="t-small">torque</text>
+  <line class="wire" x1="62" y1="76" x2="92" y2="76" marker-end="url(#ah-tl)" />
+  <circle class="surface wire" cx="106" cy="76" r="13" /><text x="106" y="81" text-anchor="middle" class="t-strong">−</text>
+  <line class="wire" x1="119" y1="76" x2="148" y2="76" marker-end="url(#ah-tl)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="150" y="50" width="104" height="52" rx="8" /><text x="202" y="81" text-anchor="middle" class="t-strong">Controller</text>
+  <line class="wire" x1="254" y1="76" x2="282" y2="76" marker-end="url(#ah-tl)" />
+  <rect class="soft1 c1" stroke-width="1.4" x="284" y="50" width="84" height="52" rx="8" /><text x="326" y="81" text-anchor="middle" class="t-strong">Motor</text>
+  <rect class="soft3 c3" stroke-width="1.4" x="374" y="42" width="110" height="68" rx="8" /><text x="429" y="73" text-anchor="middle" class="t-strong">Reducer</text><text x="429" y="91" text-anchor="middle" class="t-small t-muted">friction, flex</text>
+  <rect class="soft2 c2" stroke-width="1.4" x="490" y="50" width="76" height="52" rx="8" /><text x="528" y="72" text-anchor="middle" class="t-small t-strong">Torque</text><text x="528" y="88" text-anchor="middle" class="t-small t-strong">sensor</text>
+  <rect class="box" x="572" y="62" width="114" height="28" rx="14" /><text x="629" y="81" text-anchor="middle" class="t-small">link</text>
+  <path class="wire" d="M528 102 V146 H106 V91" marker-end="url(#ah-tl)" />
+  <text x="317" y="164" text-anchor="middle" class="t-small">measured joint torque</text>
+  <text x="14" y="22" class="t-small t-muted">Feedback hides reducer friction and rotor inertia — but only as fast as the loop can react.</text>
+</svg>

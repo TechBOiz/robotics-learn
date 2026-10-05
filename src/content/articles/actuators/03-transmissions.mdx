@@ -10,6 +10,8 @@ tags: [actuators, gears, harmonic-drive, cycloidal, planetary, roller-screw]
 import Figure from '../../../components/Figure.astro';
 import Callout from '../../../components/Callout.astro';
 import JointModule from '../../../figures/JointModule.astro';
+import ReducerTypes from '../../../figures/ReducerTypes.astro';
+import ScrewTypes from '../../../figures/ScrewTypes.astro';
 
 An electric motor is happiest spinning at thousands of rpm with modest torque. A knee wants the opposite: a few rad/s and a great deal of torque. The **transmission** closes that gap, and in doing so it sets the joint's backlash, stiffness, efficiency, shock tolerance and — through the $N^2$ rule from the [first article](/actuators/actuator-fundamentals/) — how backdrivable it is.
 
@@ -24,6 +26,10 @@ Two motors of similar size behind different reducers make two very different act
 Modern robot joints are usually built as a single sealed **module**: motor, reducer, encoders, drive electronics and sometimes a brake and torque sensor in one housing. Having an encoder on *both* sides of the reducer matters — the motor-side encoder is used for commutation and fine velocity, and the output-side encoder reports the true joint angle regardless of gear compliance or backlash.
 
 ## Rotary reducers
+
+<Figure number={2} caption="The three reducers used in most robot joints, seen along the axis. Schematic: real tooth counts are much higher.">
+  <ReducerTypes />
+</Figure>
 
 ### Planetary gears
 
@@ -74,6 +80,10 @@ A finer lead gives more force and less speed, exactly as a higher gear ratio wou
 ### Planetary roller screws
 
 Replace the balls with **threaded rollers** arranged around the screw like planets. Each roller touches the screw and the nut along many thread flanks instead of at a few ball contact points, so far more bearing area fits in the same space.
+
+<Figure number={3} caption="Cross-sections through the nut. The roller screw fits far more load-bearing contact into the same diameter.">
+  <ScrewTypes />
+</Figure>
 
 According to the [general reference on roller screws](https://en.wikipedia.org/wiki/Roller_screw), the result is higher load rating, stiffness and life than a ball screw of the same size, at similar efficiency (about 75–90%), and at a cost that can be an order of magnitude higher. In an *inverted* roller screw the threads are cut inside the nut and the nut is rotated, which lets the motor's rotor double as the nut and shortens the actuator.
 

@@ -10,6 +10,7 @@ tags: [actuators, fundamentals, torque, gearing]
 import Figure from '../../../components/Figure.astro';
 import Callout from '../../../components/Callout.astro';
 import TorqueSpeed from '../../../figures/TorqueSpeed.astro';
+import EnergyChain from '../../../figures/EnergyChain.astro';
 
 A robot's controller can only ever ask for one thing: *push this joint this hard*. The **actuator** is the part that makes it happen. It takes energy from a battery, a pump or a compressor and turns it into force on a link.
 
@@ -24,6 +25,10 @@ Everything a robot can physically do — how fast it moves, how much it lifts, w
 3. **Motor** — the element that converts energy into mechanical force: an electric motor, a hydraulic cylinder, a pneumatic muscle.
 4. **Transmission** — gears, screws, belts or cables that trade speed for force.
 5. **Sensors** — at minimum position; often current, torque and temperature.
+
+<Figure number={1} caption="The actuator as a chain. Power flows left to right and shrinks at every stage; sensor signals flow back so the drive can correct what it commands.">
+  <EnergyChain />
+</Figure>
 
 A design choice anywhere in this chain shows up in the others. A motor that produces more torque needs less gearing; less gearing changes what the sensors can see; and so on. Read an actuator as a system.
 
@@ -53,14 +58,14 @@ $$
 V = I R + K_e\,\omega
 $$
 
-These two lines produce the shape in Figure 1.
+These two lines produce the shape in Figure 2.
 
 - **The speed limit is electrical.** Once back-EMF approaches the supply voltage there is no voltage left to push current, so torque falls to zero at the *no-load speed*.
 - **The torque limit is thermal.** Current through winding resistance makes heat, $P_{\text{loss}} = I^2 R$. Since torque is proportional to current, *heat grows with the square of torque*. Double the torque, four times the heat.
 
 That second point is why every motor has two torque ratings. **Continuous torque** is what it can hold indefinitely without overheating. **Peak torque** is several times higher but only available for seconds, until the windings get hot.
 
-<Figure number={1} caption="The envelope of a motor alone (blue) and the same motor behind an N:1 gearbox (orange). Gearing does not enlarge the envelope's area — the power — it reshapes it.">
+<Figure number={2} caption="The envelope of a motor alone (blue) and the same motor behind an N:1 gearbox (orange). Gearing does not enlarge the envelope's area — the power — it reshapes it.">
   <TorqueSpeed />
 </Figure>
 

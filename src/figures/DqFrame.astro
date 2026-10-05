@@ -1,0 +1,38 @@
+---
+// The rotating d-q frame.
+const th = (-35 * Math.PI) / 180; // d-axis direction (screen coords, y down)
+const C = { x: 190, y: 170 };
+const along = (len: number, ang: number) => [C.x + len * Math.cos(ang), C.y + len * Math.sin(ang)];
+const d = along(120, th), q = along(120, th - Math.PI / 2);
+const iq = along(84, th - Math.PI / 2);
+const idn = along(-40, th);
+const sum = [iq[0] + idn[0] - C.x, iq[1] + idn[1] - C.y];
+const rot = `rotate(${(th * 180) / Math.PI} ${C.x} ${C.y})`;
+const arc = `M${C.x + 60} ${C.y} A60 60 0 0 0 ${C.x + 60 * Math.cos(th)} ${C.y + 60 * Math.sin(th)}`;
+---
+<svg class="fig" viewBox="0 0 680 330" role="img" aria-labelledby="dq-title dq-desc">
+  <title id="dq-title">The d-q reference frame on a permanent-magnet rotor</title>
+  <desc id="dq-desc">The d axis points along the rotor's magnet flux and the q axis is 90 electrical degrees ahead of it. Current along q produces torque. Current along d produces none; a negative d current opposes the magnet flux, which is used for field weakening.</desc>
+  <defs><marker id="ah-dq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker></defs>
+  <circle class="none grid" cx={C.x} cy={C.y} r="130" />
+  <line class="wire-muted" x1="40" y1={C.y} x2="340" y2={C.y} marker-end="url(#ah-dq)" /><text x="344" y={C.y + 4} class="t-small t-muted">α</text>
+  <line class="wire-muted" x1={C.x} y1="320" x2={C.x} y2="24" marker-end="url(#ah-dq)" /><text x={C.x + 8} y="30" class="t-small t-muted">β</text>
+  <g transform={rot}>
+    <rect class="soft3 c3" stroke-width="1.4" x={C.x - 50} y={C.y - 20} width="100" height="40" rx="6" />
+    <text x={C.x + 36} y={C.y + 15} text-anchor="middle" class="t-small t-strong">N</text><text x={C.x - 36} y={C.y + 15} text-anchor="middle" class="t-small t-strong">S</text>
+  </g>
+  <line class="c3 thick" x1={C.x} y1={C.y} x2={d[0]} y2={d[1]} marker-end="url(#ah-dq)" />
+  <line class="c1 thick" x1={C.x} y1={C.y} x2={q[0]} y2={q[1]} marker-end="url(#ah-dq)" />
+  <text x={d[0] + 8} y={d[1] + 4} class="t-strong t-c3">d</text><text x={q[0] - 16} y={q[1] - 4} class="t-strong t-c1">q</text>
+  <line class="c2" stroke-width="4" x1={C.x} y1={C.y} x2={iq[0]} y2={iq[1]} />
+  <line class="c4" stroke-width="4" x1={C.x} y1={C.y} x2={idn[0]} y2={idn[1]} />
+  <line class="wire dash" x1={C.x} y1={C.y} x2={sum[0]} y2={sum[1]} />
+  <path class="wire-muted none" d={arc} /><text x={C.x + 68} y={C.y - 14} class="t-small t-math">θ</text>
+
+  <text x="390" y="64" class="t-strong t-c3">d axis</text><text x="390" y="82" class="t-small">along the rotor's magnet flux</text>
+  <text x="390" y="116" class="t-strong t-c1">q axis</text><text x="390" y="134" class="t-small">90 electrical degrees ahead</text>
+  <text x="390" y="168" class="t-strong t-c2">i_q — torque-producing current</text><text x="390" y="186" class="t-small">torque is proportional to it</text>
+  <text x="390" y="220" class="t-strong t-c4">i_d — flux current</text><text x="390" y="238" class="t-small">normally held at zero; driven negative</text><text x="390" y="253" class="t-small">to weaken the field at high speed</text>
+  <text x="390" y="288" class="t-small t-muted">α–β is fixed to the stator; d–q turns with the rotor.</text>
+  <text x="390" y="304" class="t-small t-muted">Dashed: total current when both are present.</text>
+</svg>
