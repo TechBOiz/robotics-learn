@@ -1,0 +1,123 @@
+---
+title: "Actions, data and the state of the field"
+summary: "The two design questions that separate one VLA from another — how to represent actions, and where the training data comes from — followed by a dated map of the main models as of October 2026."
+category: vla
+order: 2
+level: advanced
+updated: 2026-10-05
+tags: [vla, action-tokenisation, flow-matching, robot-data, foundation-models]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import ActionChunking from '../../../figures/ActionChunking.astro';
+import DataPyramid from '../../../figures/DataPyramid.astro';
+
+The [previous article](/vla/what-a-vla-is/) described what vision-language-action models share. This one covers where they differ. Nearly every architectural debate in the field reduces to two questions: how should a language model output motion, and what should it be trained on?
+
+## Question 1: how to represent actions
+
+A language model outputs discrete tokens from a fixed vocabulary. A robot needs continuous numbers — joint angles or end-effector poses — at high rate. Bridging the two is the central design problem.
+
+### Discrete bins
+
+Divide each action dimension into, say, 256 bins and assign a token to each. One time step of a seven-degree-of-freedom arm becomes seven tokens. This is what RT-2 and OpenVLA do. It reuses the language model unchanged.
+
+It works for slow, coarse actions and degrades for fast, fine ones. At 50 Hz, consecutive actions are almost identical, so nearly every token is predictable from the last. The model can score well in training by copying the previous action, and learns little.
+
+### Compressed tokens
+
+[FAST](https://arxiv.org/abs/2501.09747) addresses that by compressing before tokenising. It applies a discrete cosine transform — the same idea used in JPEG — to a chunk of actions, so a smooth one-second motion becomes a few significant frequency coefficients. Those are tokenised. The authors report training up to five times faster than a diffusion-based alternative at matching performance on dexterous, high-frequency tasks.
+
+### Diffusion and flow matching
+
+Skip tokens for actions altogether. Attach a separate head that generates a continuous action chunk by starting from random noise and refining it over several steps, guided by the backbone's features.
+
+[Diffusion](https://arxiv.org/abs/2303.04137) learns to remove noise step by step. **Flow matching** learns a velocity field that carries noise to data along a more direct path, and typically needs fewer steps. [π0](https://arxiv.org/abs/2410.24164) uses flow matching; GR00T N1 uses a diffusion transformer.
+
+These heads produce smooth, precise, high-rate actions and represent several valid ways of doing a task without averaging them. They add an iterative sampling loop at inference time, and training them alongside a language backbone takes care.
+
+### Both
+
+Recent models combine the approaches. [π0.5](https://www.pi.website/blog/pi05) first decodes a high-level step as text — a description of the next subtask — and then generates the low-level motion with flow matching, in chunks of 50 steps covering one second.
+
+| Representation | Strength | Weakness | Examples |
+|---|---|---|---|
+| Per-step bins | Simple; language model unchanged | Poor at high-rate, dexterous motion | RT-2, OpenVLA |
+| Compressed tokens | Efficient; trains fast | Decoding adds complexity | FAST |
+| Diffusion / flow head | Smooth, precise, multimodal | Iterative sampling; harder to train | π0, GR00T N1, Octo |
+| Text plan + continuous action | Reasoning and dexterity together | Two decoding stages | π0.5 |
+
+### Chunks, and what happens between them
+
+<Figure number={1} caption="Action chunking with re-planning. Chunk length and how much of it to execute are tuning choices.">
+  <ActionChunking />
+</Figure>
+
+Predicting a chunk amortises a slow model over many control steps. It raises a question at every boundary: the new chunk was computed from an observation that is already slightly old, and may not continue smoothly from where the last one left off. Remedies include blending overlapping predictions, and conditioning each new chunk on the actions already committed. [SmolVLA](https://arxiv.org/abs/2506.01844) runs prediction asynchronously from execution so the robot keeps moving while the next chunk is computed.
+
+## Question 2: where the data comes from
+
+Language models train on trillions of words that already existed. No equivalent corpus of robot actions exists. Every approach is some mixture of the following.
+
+<Figure number={2} caption="Sources of training data, ordered by abundance.">
+  <DataPyramid />
+</Figure>
+
+**Teleoperation.** A person drives the robot through the task while everything is recorded. It is the gold standard, and it is slow: one operator produces one robot-hour per hour. Scale is measured in hundreds to tens of thousands of hours. Figure reports training Helix on roughly 500 hours.
+
+**Cross-embodiment datasets.** Pooling data from many robots, as in [Open X-Embodiment](https://arxiv.org/abs/2310.08864), multiplies what any single lab has.
+
+**Simulation and synthetic data.** Unlimited and perfectly labelled, and subject to the [sim-to-real gap](/machine-learning/sim-to-real/), which is widest for the deformable, cluttered scenes manipulation cares about. Generative video models are now also used to synthesise training scenes.
+
+**Human video.** Abundant, and it shows how tasks are done in real homes. It contains no robot actions, so using it means inferring motion from pixels, or learning an intermediate "latent action" that both humans and robots share. Camera-equipped glasses and gloves are increasingly used to record people at work specifically for this.
+
+**Web data.** Image–text pairs that preserve the VLM's general knowledge during robot training.
+
+<Callout title="The open question">
+Nobody yet knows how performance scales with robot data, or how far cheaper sources can substitute for teleoperation. The current bet across the field is that mixtures work: π0.5's reported generalisation came from co-training on web data, verbal instructions, subtask labels and data from other robots alongside its target-robot demonstrations.
+</Callout>
+
+## The field, as of October 2026
+
+Dates and specifications below come from the developers' own papers and announcements, or from the cited summary where marked. They are claims, and they date quickly.
+
+| Model | Developer | First released | Notable for | Open weights |
+|---|---|---|---|---|
+| [RT-2](https://arxiv.org/abs/2307.15818) | Google DeepMind | July 2023 | Introduced the VLA: actions as text tokens | No |
+| [Octo](https://arxiv.org/abs/2405.12213) | UC Berkeley and others | May 2024 | Small open generalist policy with a diffusion head | Yes |
+| [OpenVLA](https://arxiv.org/abs/2406.09246) | Stanford and others | June 2024 | 7B parameters; 970k demonstrations; the open baseline | Yes |
+| [π0](https://arxiv.org/abs/2410.24164) | Physical Intelligence | October 2024 | Flow-matching action head on a VLM; dexterous tasks | Yes (later) |
+| [Helix](https://www.figure.ai/news/helix) | Figure | February 2025 | Dual-rate design for a humanoid upper body, on board | No |
+| [GR00T N1](https://arxiv.org/abs/2503.14734) | NVIDIA | March 2025 | Open dual-system model for humanoids | Yes |
+| [Gemini Robotics](https://arxiv.org/abs/2503.20020) | Google DeepMind | March 2025 | VLA built on Gemini 2.0, plus an embodied-reasoning model | No |
+| [π0.5](https://www.pi.website/blog/pi05) | Physical Intelligence | April 2025 | Reported generalisation to unseen homes | Not checked |
+| [SmolVLA](https://arxiv.org/abs/2506.01844) | Hugging Face | June 2025 | Compact model trained on community data; runs on consumer hardware | Yes |
+
+Development has continued since. A [survey of deployed models](https://www.marktechpost.com/2026/04/28/top-10-physical-ai-models-powering-real-world-robots-in-2026/) published in April 2026 lists, among others, Gemini Robotics 1.5 (September 2025), GR00T N1.7 (April 2026) and π0.7 (April 2026). Those entries have not been checked against primary sources for this article.
+
+## Reading a VLA announcement
+
+A few questions cut through most claims.
+
+- **Is the environment new, or only the object?** Generalising to an unseen object in a familiar room is far easier than working in an unseen room.
+- **How many trials, and what counted as success?** A single video proves that something happened once.
+- **Autonomous, or teleoperated?** And at what playback speed?
+- **How much fine-tuning for this task?** "Zero-shot" and "after 100 demonstrations" are very different results.
+- **Which robot?** Results on one embodiment do not automatically carry over.
+- **Is anything released?** Open weights allow independent checking.
+
+## Sources
+
+1. Brohan, A. et al. "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control." 2023. [arXiv:2307.15818](https://arxiv.org/abs/2307.15818)
+2. Octo Model Team. "Octo: An Open-Source Generalist Robot Policy." 2024. [arXiv:2405.12213](https://arxiv.org/abs/2405.12213)
+3. Kim, M. J. et al. "OpenVLA: An Open-Source Vision-Language-Action Model." 2024. [arXiv:2406.09246](https://arxiv.org/abs/2406.09246)
+4. Black, K. et al. "π0: A Vision-Language-Action Flow Model for General Robot Control." 2024. [arXiv:2410.24164](https://arxiv.org/abs/2410.24164)
+5. Pertsch, K. et al. "FAST: Efficient Action Tokenization for Vision-Language-Action Models." 2025. [arXiv:2501.09747](https://arxiv.org/abs/2501.09747)
+6. Figure. "Helix." 20 February 2025. [figure.ai](https://www.figure.ai/news/helix)
+7. Bjorck, J. et al. "GR00T N1: An Open Foundation Model for Generalist Humanoid Robots." 2025. [arXiv:2503.14734](https://arxiv.org/abs/2503.14734)
+8. Gemini Robotics Team. "Gemini Robotics: Bringing AI into the Physical World." 2025. [arXiv:2503.20020](https://arxiv.org/abs/2503.20020)
+9. Physical Intelligence. "A VLA with Open-World Generalization." 22 April 2025. [pi.website](https://www.pi.website/blog/pi05)
+10. Shukor, M. et al. "SmolVLA: A Vision-Language-Action Model for Affordable and Efficient Robotics." 2025. [arXiv:2506.01844](https://arxiv.org/abs/2506.01844)
+11. Chi, C. et al. "Diffusion Policy." 2023. [arXiv:2303.04137](https://arxiv.org/abs/2303.04137)
+12. Open X-Embodiment Collaboration. 2023. [arXiv:2310.08864](https://arxiv.org/abs/2310.08864)
+13. "Top 10 Physical AI Models Powering Real-World Robots in 2026." *MarkTechPost*, 28 April 2026. [marktechpost.com](https://www.marktechpost.com/2026/04/28/top-10-physical-ai-models-powering-real-world-robots-in-2026/)

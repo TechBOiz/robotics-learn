@@ -1,0 +1,19 @@
+---
+// The sim-to-real training pipeline.
+import ArrowDef from '../components/ArrowDef.astro';
+const envs = Array.from({ length: 24 }, (_, i) => ({ x: 26 + (i % 6) * 30, y: 58 + Math.floor(i / 6) * 30 }));
+---
+<svg class="fig" viewBox="0 0 720 250" role="img" aria-labelledby="sp2-title sp2-desc">
+  <title id="sp2-title">The sim-to-real pipeline</title>
+  <desc id="sp2-desc">Thousands of copies of the robot are simulated in parallel on a graphics processor, each with slightly different physical parameters. A reinforcement learning algorithm trains one policy across all of them. The trained policy is then copied to the real robot and run with no further training.</desc>
+  <defs><ArrowDef id="ah-sp" /></defs>
+  <text x="116" y="24" text-anchor="middle" class="t-strong">Simulation</text><text x="116" y="42" text-anchor="middle" class="t-small t-muted">thousands of robots in parallel</text>
+  {envs.map((e, i) => <rect class={['soft1', 'soft2', 'soft3', 'soft4'][i % 4]} x={e.x} y={e.y} width="24" height="24" rx="5" />)}
+  <text x="116" y="196" text-anchor="middle" class="t-small">each with different friction,</text><text x="116" y="211" text-anchor="middle" class="t-small">mass, motor strength, delay,</text><text x="116" y="226" text-anchor="middle" class="t-small">terrain and pushes</text>
+  <line class="wire" x1="212" y1="118" x2="298" y2="118" marker-end="url(#ah-sp)" /><text x="255" y="108" text-anchor="middle" class="t-small">experience</text>
+  <rect class="soft4 c4" stroke-width="1.4" x="300" y="74" width="150" height="88" rx="12" /><text x="375" y="104" text-anchor="middle" class="t-strong">Reinforcement</text><text x="375" y="122" text-anchor="middle" class="t-strong">learning</text><text x="375" y="142" text-anchor="middle" class="t-small t-muted">minutes to hours</text>
+  <path class="wire-muted dash" d="M375 162 V186 H240" marker-end="url(#ah-sp)" /><text x="320" y="204" text-anchor="middle" class="t-small t-muted">updated policy</text>
+  <line class="wire" x1="450" y1="118" x2="540" y2="118" marker-end="url(#ah-sp)" /><text x="495" y="108" text-anchor="middle" class="t-small">final policy</text>
+  <rect class="box" x="542" y="74" width="164" height="88" rx="12" /><text x="624" y="104" text-anchor="middle" class="t-strong">Real robot</text><text x="624" y="124" text-anchor="middle" class="t-small">runs the network at</text><text x="624" y="140" text-anchor="middle" class="t-small">tens of Hz, on board</text>
+  <text x="624" y="196" text-anchor="middle" class="t-small">no further training:</text><text x="624" y="211" text-anchor="middle" class="t-small t-strong">"zero-shot" transfer</text>
+</svg>

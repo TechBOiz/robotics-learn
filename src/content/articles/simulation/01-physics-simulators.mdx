@@ -1,0 +1,109 @@
+---
+title: "Physics simulators for robotics"
+summary: "A simulator is where controllers are tested and policies are trained before they touch hardware. What happens inside one time step, why contact is the hard part, how the main engines differ, and what no simulator gets right."
+category: simulation
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [simulation, physics-engine, mujoco, contact, urdf]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import SimStep from '../../../figures/SimStep.astro';
+
+Robots are slow to build, expensive to break, and available one at a time. A **physics simulator** offers a copy that resets instantly, runs faster than real time, never wears out and can be duplicated thousands of times. Modern robotics — and [reinforcement learning](/machine-learning/sim-to-real/) in particular — depends on it.
+
+A simulator is also a model, and every model is wrong somewhere. Using one well means knowing where.
+
+## What a simulator computes
+
+<Figure number={1} caption="The loop every rigid-body simulator runs.">
+  <SimStep />
+</Figure>
+
+Between contacts, the job is [forward dynamics](/dynamics/equations-of-motion/): given the current state and the applied torques, compute accelerations and integrate them. For rigid bodies connected by joints this is well understood, fast, and accurate.
+
+Three choices shape everything else.
+
+**Coordinates.** *Generalised-coordinate* engines describe a robot by its joint angles, so joints can never come apart. *Maximal-coordinate* engines treat each link as a free body and hold them together with constraint forces, which is more flexible and can drift. Robotics-focused engines generally use the former.
+
+**Integration.** Advancing the state by a finite time step $\Delta t$ introduces error. Simple explicit methods are cheap and become unstable with stiff systems. Implicit and semi-implicit methods remain stable at larger steps at more cost per step. Typical steps are 1 to 5 ms.
+
+**Contact.** This is where the real differences lie.
+
+## Contact is the hard part
+
+Rigid bodies cannot overlap. When two touch, a force must appear that is exactly large enough to prevent penetration, zero when they separate, and bounded by [friction](/manipulation/grasping/) tangentially. That force is discontinuous: it switches on at the instant of contact.
+
+Simulators handle this in two broad ways.
+
+- **Penalty methods** allow a small overlap and push back with a stiff spring and damper. They are simple and smooth. Realistic stiffness demands very small time steps, and the result depends on parameters with no clear physical meaning.
+- **Constraint-based methods** solve, at each step, for the contact forces that satisfy the no-penetration and friction conditions. They are stable at larger steps and need a numerical solver, whose approximations show up as subtle artefacts — objects that creep, or friction that is slightly directional.
+
+Many engines deliberately soften the problem. MuJoCo, for example, uses a contact model that is convex and always has a unique solution, which makes it fast and well behaved, at the price of allowing small, tunable penetration.
+
+<Callout title="Why this matters for learning">
+A policy trained by reinforcement learning will find and exploit any inaccuracy in the contact model. Contact is also exactly what manipulation and locomotion are made of. This is the root of the sim-to-real gap.
+</Callout>
+
+## Parallel simulation
+
+The largest practical change in recent years was moving simulation onto graphics processors. Instead of one robot stepped quickly, thousands are stepped together in one batch.
+
+That changed the economics of learning. Locomotion policies that once took days on a cluster [train in minutes on a workstation](https://arxiv.org/abs/2109.11978). The trade-off is that GPU engines restrict what can be simulated — simpler collision shapes, fixed contact budgets — to keep every environment's computation identical in shape.
+
+## Engines in common use
+
+| Engine | Maintained by | Notable for |
+|---|---|---|
+| **MuJoCo** | Google DeepMind | Fast, accurate articulated dynamics with soft convex contact. Open source since 2022. The research default for control and learning. |
+| **Isaac Sim / Isaac Lab** | NVIDIA | GPU-parallel physics with photorealistic rendering. Isaac Lab is the open-source robot-learning framework built on it. |
+| **Newton** | NVIDIA, Google DeepMind and Disney Research, under the Linux Foundation | A newer open-source GPU engine built on NVIDIA Warp and OpenUSD, with MuJoCo Warp as one of its solvers. |
+| **Drake** | Toyota Research Institute | Emphasis on mathematical rigour, optimisation-based control and careful contact modelling. |
+| **Gazebo** | Open Robotics | Whole-system simulation integrated with ROS: sensors, worlds, many robots. |
+| **PyBullet** | Open source | Easy to start with; widely used in older research and teaching. |
+
+The description of Newton follows [NVIDIA's project page](https://developer.nvidia.com/newton-physics).
+
+Which to use follows from the task. For training a locomotion policy, a GPU-parallel engine. For developing a model-based controller, an engine with accurate dynamics and access to derivatives. For testing a full software stack with perception and navigation, a system simulator with good sensor models and ROS integration.
+
+## Describing the robot
+
+A simulator needs the robot's links, joints, masses and shapes. Four formats are common.
+
+| Format | Origin | Notes |
+|---|---|---|
+| **URDF** | ROS | The most widely supported. A tree of links and joints. Cannot natively express closed kinematic loops. |
+| **MJCF** | MuJoCo | Richer: actuators, tendons, sensors, contact parameters and loop constraints. |
+| **SDF** | Gazebo | Describes whole worlds as well as robots. |
+| **USD** | Pixar, extended for robotics as OpenUSD | A scene-description format built for large, composed scenes. |
+
+Whatever the format, the numbers in it are the model. Three are worth checking by hand:
+
+- **Inertial properties.** Masses and inertia tensors exported from CAD omit cables, fasteners and adhesive. Weigh the parts.
+- **Collision geometry.** Simulators use simplified shapes for speed. A foot modelled as a sphere contacts the ground differently from the real one.
+- **Actuator model.** Torque limits, velocity limits, gear ratio, armature (reflected rotor inertia) and friction. Leaving out [reflected inertia](/actuators/actuator-fundamentals/) is a common and consequential omission.
+
+## What simulators get wrong
+
+- **Actuators.** Most simulate an ideal torque source. Real ones have bandwidth, delay, backlash and thermal limits.
+- **Friction.** A single Coulomb coefficient. Real friction depends on speed, load, temperature, dust and wear.
+- **Deformable things.** Cloth, cables, soft fingertips, food and soil are expensive to simulate and usually simulated poorly.
+- **Fine geometry.** Screw threads, connector pins and surface texture are below collision resolution.
+- **Sensors.** Rendered images lack real cameras' noise, blur, exposure behaviour and lens artefacts. Simulated depth lacks the [characteristic failures](/computer-vision/seeing-depth/) of real depth sensors.
+- **Timing.** Simulated control loops run with perfect regularity and no communication delay unless these are added deliberately.
+
+## Using a simulator well
+
+- **Validate against the real robot.** Play the same commands through both and compare the logged joint trajectories. Differences show what to fix.
+- **Test in a second simulator.** A controller that works in one engine and fails in another has learned the engine.
+- **Randomise what you cannot measure.** See [domain randomisation](/machine-learning/sim-to-real/).
+- **Treat passing in simulation as necessary, not sufficient.** A simulator is excellent at revealing what does not work. It is weaker evidence that something does.
+
+## Sources
+
+1. Todorov, E., Erez, T. and Tassa, Y. "MuJoCo: A physics engine for model-based control." *IEEE/RSJ International Conference on Intelligent Robots and Systems*, 2012. Project site: [mujoco.org](https://mujoco.org/)
+2. NVIDIA. "Newton Physics Engine." [developer.nvidia.com/newton-physics](https://developer.nvidia.com/newton-physics)
+3. Rudin, N. et al. "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning." 2021. [arXiv:2109.11978](https://arxiv.org/abs/2109.11978)
+4. Drake: Model-based design and verification for robotics. [drake.mit.edu](https://drake.mit.edu/)
+5. Featherstone, R. *Rigid Body Dynamics Algorithms.* Springer, 2008.

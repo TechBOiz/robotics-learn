@@ -1,0 +1,27 @@
+---
+// What a physics simulator does each time step.
+import ArrowDef from '../components/ArrowDef.astro';
+const steps = [
+  { name: 'Apply controls', sub: 'torques from the policy', sub2: 'or controller', cls: 'soft4' },
+  { name: 'Detect collisions', sub: 'which shapes touch,', sub2: 'and where', cls: 'soft1' },
+  { name: 'Solve contacts', sub: 'forces that stop', sub2: 'interpenetration', cls: 'soft3' },
+  { name: 'Integrate', sub: 'advance positions', sub2: 'and velocities by Δt', cls: 'soft2' },
+];
+const x = (i: number) => 20 + i * 176;
+---
+<svg class="fig" viewBox="0 0 720 200" role="img" aria-labelledby="ss-title ss-desc">
+  <title id="ss-title">One time step of a physics simulator</title>
+  <desc id="ss-desc">Four stages repeat every time step: apply the control torques, detect which shapes are in collision, solve for the contact forces that prevent them passing through each other, and integrate the equations of motion forward by one time step.</desc>
+  <defs><ArrowDef id="ah-ss" /></defs>
+  {steps.map((s, i) => (
+    <g>
+      <rect class={s.cls} x={x(i)} y="40" width="150" height="80" rx="12" />
+      <text x={x(i) + 75} y="68" text-anchor="middle" class="t-strong">{s.name}</text>
+      <text x={x(i) + 75} y="88" text-anchor="middle" class="t-small">{s.sub}</text><text x={x(i) + 75} y="104" text-anchor="middle" class="t-small">{s.sub2}</text>
+      {i < 3 && <line class="wire" x1={x(i) + 150} y1="80" x2={x(i + 1) - 1} y2="80" marker-end="url(#ah-ss)" />}
+    </g>
+  ))}
+  <path class="wire-muted dash" d={`M${x(3) + 75} 120 V158 H${x(0) + 75} V122`} marker-end="url(#ah-ss)" />
+  <text x="360" y="176" text-anchor="middle" class="t-small t-muted">repeat every Δt — typically 1 to 5 ms of simulated time</text>
+  <text x="360" y="22" text-anchor="middle" class="t-small">Contact solving is where simulators differ most, and where most of their error comes from.</text>
+</svg>

@@ -1,0 +1,96 @@
+---
+title: "What a vision-language-action model is"
+summary: "A VLA takes camera images and a sentence, and outputs robot motion. How a model built for images and text is turned into a robot controller, why the two-speed design emerged, and what these models can and cannot yet do."
+category: vla
+order: 1
+level: intermediate
+updated: 2026-10-05
+tags: [vla, foundation-models, imitation-learning, manipulation]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import VlaArchitecture from '../../../figures/VlaArchitecture.astro';
+import DualSystem from '../../../figures/DualSystem.astro';
+
+A policy trained by [behaviour cloning](/machine-learning/imitation-and-reinforcement-learning/) on one task learns that task, in that kitchen, with those objects. Move the cup or change the lighting and it may fail. The limiting factor is data: no robot dataset is remotely large enough to cover the variety of the real world.
+
+Models trained on the internet's images and text, on the other hand, already know what a cup is, what "left of the sink" means, and what a tidy table looks like. A **vision-language-action model** (VLA) is an attempt to borrow that knowledge for robot control.
+
+## The idea
+
+Start with a pretrained **vision-language model** (VLM): a network that takes images and text and produces text. Fine-tune it on robot demonstrations so that, given camera images and an instruction, it produces *actions*.
+
+<Figure number={1} caption="The common shape of a VLA. The components differ between models; the flow does not.">
+  <VlaArchitecture />
+</Figure>
+
+The term comes from [RT-2](https://arxiv.org/abs/2307.15818) in 2023, which made the step in the most direct way possible. It wrote each action as a short string of numbers, treated those as ordinary text tokens, and trained the VLM to emit them. Trained jointly on robot data and on web-scale vision-language tasks, the model followed instructions involving objects and concepts that never appeared in its robot data — for example, moving an item onto a particular number or picking the smallest object.
+
+That result is the core claim of the approach:
+
+<Callout title="What the VLM contributes">
+Semantic knowledge transfers. The robot data teaches *how to move*; the internet pretraining supplies *what things are and what the words mean*. The robot data therefore need not contain every object and phrasing the robot will meet.
+</Callout>
+
+## The parts
+
+**Vision encoder.** Converts each camera image into a sequence of feature vectors. [OpenVLA](https://arxiv.org/abs/2406.09246), for example, combines two pretrained encoders, DINOv2 and SigLIP, one stronger on spatial detail and one on meaning.
+
+**Language model backbone.** A transformer that processes the image features and the instruction tokens together. Sizes range from a few hundred million parameters to several billion.
+
+**Action head.** The stage that turns the backbone's output into numbers the robot can execute. This is where designs differ most, and it is covered in [the next article](/vla/actions-data-and-the-field/). The main choices are discrete tokens, as in RT-2, or a diffusion or flow-matching head that generates continuous actions, as in [π0](https://arxiv.org/abs/2410.24164).
+
+**Action chunk.** Nearly all current models output a short sequence of future actions at once — commonly around a second's worth — instead of a single step.
+
+**Robot state.** Joint angles and gripper position, usually fed in alongside the images.
+
+## Two speeds
+
+A multi-billion-parameter model cannot run at the rate a robot arm needs. A large VLM takes on the order of a hundred milliseconds per pass; smooth, reactive control wants commands many times faster than that.
+
+The common answer is to split the model in two.
+
+<Figure number={2} caption="A slow model that understands, and a fast model that acts.">
+  <DualSystem />
+</Figure>
+
+Figure describes its [Helix](https://www.figure.ai/news/helix) model this way: a 7-billion-parameter vision-language model running at 7–9 Hz, feeding an 80-million-parameter network that outputs control for 35 degrees of freedom of the upper body at 200 Hz, all on the robot's on-board GPUs. NVIDIA's [GR00T N1](https://arxiv.org/abs/2503.14734) uses the same division, with a vision-language "System 2" and a diffusion-transformer "System 1". The names borrow from psychology's distinction between deliberate and automatic thinking.
+
+The figures above are the developers' own. The design principle is the durable part: slow semantic reasoning and fast motor control are separate problems, and they run at separate rates.
+
+## How one is trained
+
+1. **Pretrain the VLM** on internet images and text. This is usually done by someone else; the VLA starts from a published model.
+2. **Pretrain on robot data from many sources.** Demonstrations from different robots, labs and tasks are pooled. The [Open X-Embodiment](https://arxiv.org/abs/2310.08864) collection, assembled across many institutions, made this practical for academic groups; OpenVLA was trained on 970,000 demonstrations drawn from it.
+3. **Co-train on non-robot tasks** such as image captioning and visual question answering, so the semantic knowledge is not forgotten while the model learns to act.
+4. **Fine-tune** for a specific robot and task, often with a comparatively small number of demonstrations.
+
+Step 2 depends on **cross-embodiment** training: a single model learning from robots with different arms, grippers and camera placements. Each robot's actions are mapped into a shared format, and the model is told which robot it is controlling. A model that has seen many bodies adapts to a new one with less data than a model trained from scratch.
+
+## What they can do
+
+As of this writing, published demonstrations include folding laundry, clearing tables, loading dishwashers, packing boxes and sorting groceries, driven by natural-language instructions. The most significant recent claim is about generalisation to new places: Physical Intelligence reported that its [π0.5](https://www.pi.website/blog/pi05) model completed long household tasks in homes that were entirely absent from its training data.
+
+## What remains hard
+
+- **Reliability.** Success rates that look impressive in a demonstration video are far below what unattended industrial use requires. A 90% success rate on a ten-step task fails most of the time.
+- **Speed.** Most demonstrations run well below human pace.
+- **Precision and force.** Tasks needing tight tolerances or controlled force — insertion, fastening — are much harder than pick-and-place. Most VLAs see only images and joint angles, with no [sense of touch](/sensors/force-torque-and-touch/).
+- **Long horizons.** Errors accumulate over many steps, and the model must remember what it has already done.
+- **Evaluation.** There is no agreed benchmark on real hardware. Results from different groups, on different robots, are not comparable.
+- **Data.** Robot demonstrations remain expensive, and how much is enough is unknown.
+- **Safety.** A model that will attempt any instruction needs constraints applied outside the model. See [safety standards](/safety/).
+
+## Where a VLA sits in the stack
+
+A VLA replaces the task-level and motion-level reasoning: what to do, and roughly how to move. It does not replace what lies beneath. Its action chunk is a set of targets for the [joint-level controller](/control/impedance-control/), which still runs at kilohertz rates on [actuators](/actuators/) that must be able to follow it. For a humanoid, a separate learned or model-based controller usually handles balance and walking, and the VLA commands the arms and hands on top of it.
+
+## Sources
+
+1. Brohan, A. et al. "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control." 2023. [arXiv:2307.15818](https://arxiv.org/abs/2307.15818)
+2. Kim, M. J. et al. "OpenVLA: An Open-Source Vision-Language-Action Model." 2024. [arXiv:2406.09246](https://arxiv.org/abs/2406.09246)
+3. Black, K. et al. "π0: A Vision-Language-Action Flow Model for General Robot Control." 2024. [arXiv:2410.24164](https://arxiv.org/abs/2410.24164)
+4. Bjorck, J. et al. "GR00T N1: An Open Foundation Model for Generalist Humanoid Robots." 2025. [arXiv:2503.14734](https://arxiv.org/abs/2503.14734)
+5. Figure. "Helix: A Vision-Language-Action Model for Generalist Humanoid Control." 20 February 2025. [figure.ai](https://www.figure.ai/news/helix)
+6. Open X-Embodiment Collaboration. "Open X-Embodiment: Robotic Learning Datasets and RT-X Models." 2023. [arXiv:2310.08864](https://arxiv.org/abs/2310.08864)
+7. Physical Intelligence. "A VLA with Open-World Generalization." 22 April 2025. [pi.website](https://www.pi.website/blog/pi05)

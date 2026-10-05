@@ -1,0 +1,22 @@
+---
+// The four ways people and an industrial robot can share a space.
+const modes = [
+  { name: 'Monitored standstill', sub: ['The robot stops and holds', 'still while a person is in', 'the shared space.'], cls: 'soft2' },
+  { name: 'Hand guiding', sub: ['A person moves the robot', 'directly, by a hand-held', 'enabling device.'], cls: 'soft1' },
+  { name: 'Speed and separation', sub: ['Sensors track people. The', 'robot slows as they approach', 'and stops before contact.'], cls: 'soft4' },
+  { name: 'Power and force limiting', sub: ['Contact is permitted. Force', 'and pressure are kept below', 'limits for each body region.'], cls: 'soft3' },
+];
+---
+<svg class="fig" viewBox="0 0 720 190" role="img" aria-labelledby="cm2-title cm2-desc">
+  <title id="cm2-title">Four ways to make a collaborative application safe</title>
+  <desc id="cm2-desc">Monitored standstill: the robot holds still while a person is present. Hand guiding: a person moves the robot directly. Speed and separation monitoring: the robot slows and stops as a person approaches, so contact never occurs while it is moving. Power and force limiting: contact is allowed, with force and pressure kept below limits.</desc>
+  {modes.map((m, i) => (
+    <g>
+      <rect class={m.cls} x={14 + i * 176} y="20" width="164" height="118" rx="12" />
+      <text x={96 + i * 176} y="48" text-anchor="middle" class="t-strong">{m.name}</text>
+      {m.sub.map((s, k) => <text x={96 + i * 176} y={74 + k * 17} text-anchor="middle" class="t-small">{s}</text>)}
+    </g>
+  ))}
+  <line class="wire-muted" x1="14" y1="158" x2="530" y2="158" /><text x="272" y="176" text-anchor="middle" class="t-small t-muted">no contact with a moving robot</text>
+  <line class="wire-muted" x1="542" y1="158" x2="706" y2="158" /><text x="624" y="176" text-anchor="middle" class="t-small t-muted">contact allowed</text>
+</svg>

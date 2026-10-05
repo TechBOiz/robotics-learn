@@ -1,0 +1,98 @@
+---
+title: "Grasping: how a hand holds an object"
+summary: "A grasp works when the fingers can resist any force the object might experience. Contact and friction cones, force closure, the main gripper types, and how robots choose where to grasp."
+category: manipulation
+order: 1
+level: intermediate
+updated: 2026-10-05
+tags: [manipulation, grasping, friction, grippers, force-closure]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import AntipodalGrasp from '../../../figures/AntipodalGrasp.astro';
+
+Picking something up is the first thing most people want a robot to do, and it conceals a good deal of mechanics. A grasp must hold the object against gravity, against acceleration as the arm moves, and against whatever the object bumps into. Whether it can is decided at the handful of points where finger meets object.
+
+## What a contact can do
+
+A fingertip touching a surface can push on it. It cannot pull. And it can push sideways only as far as friction allows:
+
+$$
+\lVert f_t \rVert \le \mu\, f_n
+$$
+
+where $f_n$ is the force along the surface normal, $f_t$ is the tangential force, and $\mu$ is the coefficient of friction. Geometrically, the total contact force must lie inside a cone around the normal — the **friction cone** — with half-angle $\arctan\mu$. Outside the cone, the finger slips.
+
+Three idealised contact types are used in analysis:
+
+| Model | Can transmit | Represents |
+|---|---|---|
+| Frictionless point | Force along the normal only | A hard, slippery fingertip |
+| Point with friction | Any force inside the friction cone | A hard fingertip — the usual model |
+| Soft finger | A force inside the cone, plus some torsion about the normal | A rubbery, deformable fingertip |
+
+The soft-finger model is why real grippers have compliant pads. A pad that conforms to the surface makes an area of contact instead of a point, which resists twisting.
+
+## When does a grasp hold?
+
+<Figure number={1} caption="The test for a two-finger grasp. The same squeeze holds one object and ejects the other.">
+  <AntipodalGrasp />
+</Figure>
+
+For two fingers with friction, the rule is simple: **the line joining the two contact points must lie inside both friction cones.** Such a grasp is called *antipodal*. Squeezing then increases the force the grasp can resist in every direction.
+
+The general concept is **force closure**: a grasp has it if the contacts, by pushing within their friction cones, can together produce a force and torque in *any* direction on the object. Then any disturbance can be resisted by squeezing harder.
+
+A related and stricter idea is **form closure**, where the object is geometrically trapped and could not move even with zero friction — like a part in a fixture. Planar objects need at least four frictionless contacts for form closure, and three-dimensional ones need seven. Friction is what lets practical hands manage with far fewer.
+
+<Callout title="Squeeze force is a budget">
+The force a grasp can resist scales with grip force and friction. But grip force is limited by the gripper, and by what the object survives. A parallel gripper holding a 1 kg object by friction alone on vertical faces with $\mu = 0.5$ needs about 10 N of normal force per finger just to stop it sliding under gravity — and several times that to hold it while the arm accelerates.
+</Callout>
+
+The better strategy, where possible, is to support the load geometrically: grasp *under* a lip, or wrap around the object, so that the fingers carry weight directly and friction is only a backup.
+
+## Power and precision
+
+Human grasps divide broadly into two families, and robot grasps follow.
+
+- **Precision grasps** hold the object at the fingertips. They allow fine repositioning and need accurate placement.
+- **Power grasps** wrap the fingers and palm around the object. There are many contacts over a large area, so they are strong and secure, and the object cannot be adjusted once held.
+
+## Gripper types
+
+| Type | How it works | Strengths | Weaknesses |
+|---|---|---|---|
+| **Parallel jaw** | Two fingers close along a line | Simple, strong, predictable; easy to plan for | One grasp style; fingers often custom-made per part |
+| **Suction** | Vacuum cup seals on a surface | Needs one accessible face; very fast | Fails on porous, rough or curved surfaces; weak against peeling |
+| **Underactuated** | More joints than motors; fingers wrap until they meet resistance | Conforms to unknown shapes with simple control | Final finger posture is not directly controlled |
+| **Soft** | Inflatable or compliant fingers | Gentle; tolerant of position error | Low force and precision |
+| **Dexterous hand** | Many independently driven fingers | Can use tools and reposition objects in the hand | Cost, fragility, and control complexity |
+
+Industry runs overwhelmingly on the first two. Suction dominates warehouse picking because a single accessible surface is enough and no finger has to fit between tightly packed items. Dexterous hands are where humanoid developers are investing; see the [actuation challenges](/actuators/recent-actuator-technologies/) involved.
+
+**Underactuation** deserves a note because it is a mechanical solution to a control problem. A finger whose joints are coupled by a tendon or linkage closes each joint until something stops it, then continues with the next. The finger wraps the object's shape automatically, with one motor and no sensing.
+
+## Choosing where to grasp
+
+**Analytic planning.** Given a model of the object, search over candidate contact points, compute a quality score — typically how large a disturbance the grasp can resist in its weakest direction — and take the best. This is rigorous and needs an accurate object model and pose, which is often unavailable.
+
+**Learned grasp detection.** A network takes a depth image or point cloud and proposes grasps directly, having been trained on large numbers of labelled examples, usually generated in simulation. It handles objects it has never seen, and is what most bin-picking systems now use.
+
+**End-to-end policies.** A [learned policy](/machine-learning/imitation-and-reinforcement-learning/) outputs arm and hand motion directly from images, with no explicit grasp representation. The grasp is whatever the demonstrations taught.
+
+In all three, uncertainty decides the outcome. The object is rarely exactly where perception says it is. Robust grasps are those that still succeed when the pose is off by a few millimetres — which favours compliant fingers, wide openings, and approach motions that let the object settle into the gripper.
+
+## After the grasp
+
+Holding an object is the beginning of manipulation.
+
+- **Slip detection.** [Tactile sensors](/sensors/force-torque-and-touch/) detect the vibration or shear that precedes slip, so grip force can be raised only when needed.
+- **In-hand manipulation.** Reorienting an object without putting it down. This requires controlled sliding and rolling at the contacts, and is one of the places [reinforcement learning in simulation](/machine-learning/sim-to-real/) has done well.
+- **Non-prehensile manipulation.** Pushing, sliding, toppling and pivoting move objects without grasping at all, and are often the only way to get an object into a graspable position.
+- **Compliance.** Any task involving contact with the environment — insertion, wiping, opening a door — depends on [controlling force as well as position](/control/impedance-control/).
+
+## Sources
+
+1. Lynch, K. M. and Park, F. C. *Modern Robotics: Mechanics, Planning, and Control.* Cambridge University Press, 2017. Chapter 12, "Grasping and Manipulation". Free preprint: [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)
+2. Mason, M. T. *Mechanics of Robotic Manipulation.* MIT Press, 2001.
+3. Siciliano, B. and Khatib, O. (eds.) *Springer Handbook of Robotics*, 2nd edition. Springer, 2016. Chapters on grasping and on robot hands.

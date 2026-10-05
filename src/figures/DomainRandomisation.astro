@@ -1,0 +1,23 @@
+---
+// Why randomising simulator parameters helps: the real value must fall inside the training distribution.
+const g = (x: number, m: number, s: number) => Math.exp(-0.5 * ((x - m) / s) ** 2);
+const xs = Array.from({ length: 121 }, (_, i) => i / 120);
+const curve = (ox: number, m: number, s: number) => xs.map((x) => `${(ox + x * 280).toFixed(1)},${(180 - 120 * g(x, m, s)).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 700 284" role="img" aria-labelledby="dr-title dr-desc">
+  <title id="dr-title">Domain randomisation</title>
+  <desc id="dr-desc">Left: a simulator tuned to a single best-guess value of a physical parameter such as friction. The real value differs, falls outside what the policy was trained on, and the policy fails. Right: the simulator samples the parameter from a wide range. The real value falls inside that range, so the real world is just one more variation the policy has already handled.</desc>
+  <text x="180" y="24" text-anchor="middle" class="t-strong">One carefully tuned simulator</text>
+  <polyline class="c1 thick" points={curve(40, 0.36, 0.035)} /><line class="axis" x1="40" y1="180" x2="320" y2="180" />
+  <line class="c3 thick" x1={40 + 0.6 * 280} y1="60" x2={40 + 0.6 * 280} y2="180" /><text x={40 + 0.6 * 280} y="52" text-anchor="middle" class="t-small t-strong t-c3">reality</text>
+  <text x={40 + 0.36 * 280} y="52" text-anchor="middle" class="t-small t-c1">training</text>
+  <text x="180" y="206" text-anchor="middle" class="t-small">The real value lies outside anything</text><text x="180" y="221" text-anchor="middle" class="t-small">the policy experienced.</text>
+
+  <line class="grid" x1="350" y1="14" x2="350" y2="230" />
+  <text x="520" y="24" text-anchor="middle" class="t-strong">Randomised simulator</text>
+  <polygon class="soft1" points={curve(380, 0.5, 0.2) + ' 660,180 380,180'} /><polyline class="c1 thick" points={curve(380, 0.5, 0.2)} /><line class="axis" x1="380" y1="180" x2="660" y2="180" />
+  <line class="c3 thick" x1={380 + 0.6 * 280} y1="60" x2={380 + 0.6 * 280} y2="180" /><text x={380 + 0.6 * 280 + 8} y="52" class="t-small t-strong t-c3">reality</text>
+  <text x="492" y="150" text-anchor="middle" class="t-small t-c1">training range</text>
+  <text x="520" y="206" text-anchor="middle" class="t-small">Reality is one more sample from a</text><text x="520" y="221" text-anchor="middle" class="t-small">range the policy already handles.</text>
+  <text x="350" y="254" text-anchor="middle" class="t-small t-muted">Horizontal axis: one physical parameter, for example ground friction.</text><text x="350" y="272" text-anchor="middle" class="t-small t-muted">Too wide a range makes the task harder and the policy more cautious.</text>
+</svg>

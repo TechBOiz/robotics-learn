@@ -1,0 +1,28 @@
+---
+// Friction cones and the antipodal grasp condition.
+import ArrowDef from '../components/ArrowDef.astro';
+const cone = (x: number, y: number, dir: number, half: number, len: number) => { const a1 = dir - half, a2 = dir + half; return `${x},${y} ${x + len * Math.cos(a1)},${y + len * Math.sin(a1)} ${x + len * Math.cos(a2)},${y + len * Math.sin(a2)}`; };
+const h = (17 * Math.PI) / 180;
+---
+<svg class="fig" viewBox="0 0 700 300" role="img" aria-labelledby="ag-title ag-desc">
+  <title id="ag-title">Friction cones and the antipodal grasp condition</title>
+  <desc id="ag-desc">Left: two fingers touch an object at opposite points. At each contact a friction cone shows the directions in which the finger can push without slipping. The line joining the two contacts lies inside both cones, so the grasp holds. Right: the contacts are on surfaces angled like a wedge. The line joining them falls outside the cones, and squeezing ejects the object.</desc>
+  <defs><ArrowDef id="ah-ag" /></defs>
+  <text x="170" y="24" text-anchor="middle" class="t-strong t-c2">Holds</text>
+  <rect class="box" x="100" y="80" width="140" height="130" rx="10" />
+  <polygon class="soft2 c2" stroke-width="1.2" points={cone(100, 145, 0, h, 120)} /><polygon class="soft2 c2" stroke-width="1.2" points={cone(240, 145, Math.PI, h, 120)} />
+  <line class="wire dash" x1="100" y1="145" x2="240" y2="145" />
+  <rect class="f1" x="66" y="112" width="34" height="66" rx="6" /><rect class="f1" x="240" y="112" width="34" height="66" rx="6" />
+  <line class="wire thick" x1="30" y1="145" x2="62" y2="145" marker-end="url(#ah-ag)" /><line class="wire thick" x1="310" y1="145" x2="278" y2="145" marker-end="url(#ah-ag)" />
+  <text x="170" y="240" text-anchor="middle" class="t-small">The line between the contacts lies</text><text x="170" y="255" text-anchor="middle" class="t-small">inside both friction cones.</text>
+
+  <line class="grid" x1="350" y1="14" x2="350" y2="270" />
+  <text x="530" y="24" text-anchor="middle" class="t-strong t-c3">Slips out</text>
+  <polygon class="box" points="470,210 590,210 560,80 500,80" />
+  <polygon class="soft3 c3" stroke-width="1.2" points={cone(485, 145, -0.23, h, 110)} /><polygon class="soft3 c3" stroke-width="1.2" points={cone(575, 145, Math.PI + 0.23, h, 110)} />
+  <line class="wire dash" x1="485" y1="145" x2="575" y2="145" />
+  <rect class="f1" x="451" y="112" width="34" height="66" rx="6" transform="rotate(-13 485 145)" /><rect class="f1" x="575" y="112" width="34" height="66" rx="6" transform="rotate(13 575 145)" />
+  <line class="c3 thick" x1="530" y1="74" x2="530" y2="40" marker-end="url(#ah-ag)" />
+  <text x="530" y="240" text-anchor="middle" class="t-small">On tapered sides the cones tilt away.</text><text x="530" y="255" text-anchor="middle" class="t-small">Squeezing pushes the object out.</text>
+  <text x="350" y="290" text-anchor="middle" class="t-small t-muted">Cone half-angle = arctan(μ). More friction, wider cones, more forgiving grasps.</text>
+</svg>

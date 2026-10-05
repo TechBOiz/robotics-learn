@@ -1,0 +1,128 @@
+---
+title: "Robot safety standards: a map"
+summary: "Which standards apply to which robots, how risk assessment and functional safety fit together, what changed in the 2025 revision of ISO 10218, and where standards for legged and humanoid robots stand."
+category: safety
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [safety, standards, iso-10218, functional-safety, risk-assessment]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import RiskReduction from '../../../figures/RiskReduction.astro';
+import CollabModes from '../../../figures/CollabModes.astro';
+
+<Callout title="Scope" tone="caution">
+This is an orientation to the landscape, not a compliance guide. Standards are detailed, they are revised, and regional law determines which ones apply. Anyone putting a robot near people needs the current documents themselves and a qualified safety professional.
+</Callout>
+
+A robot is a machine that moves with enough force to injure, under the control of software. Safety standards exist to make the reasoning about that explicit and checkable. They rarely dictate a design. They require that hazards be found, that risk be reduced in a prescribed order, and that any safety-critical control function be shown to be reliable enough.
+
+## Start with risk assessment
+
+Almost every machinery standard builds on **ISO 12100**, which defines the process:
+
+1. **Define the limits** of the machine: its intended use, foreseeable misuse, who is nearby, and every phase of life including maintenance.
+2. **Identify hazards**: crushing, impact, trapping, electrical, thermal, and so on.
+3. **Estimate the risk** of each from the severity of harm, how often people are exposed, and how avoidable it is.
+4. **Reduce the risk**, then repeat until what remains is acceptable.
+
+Risk reduction must follow a fixed order.
+
+<Figure number={1} caption="The three-step method. Each step is used only for what the previous one could not remove.">
+  <RiskReduction />
+</Figure>
+
+The order is the point. Making a robot lighter and slower is preferred over guarding it, and guarding it is preferred over warning people about it.
+
+## The standards, by kind of robot
+
+| Robot | Main standard | Covers |
+|---|---|---|
+| Industrial robot arm | **ISO 10218-1** | The robot itself, as supplied by its manufacturer |
+| Robot cell or application | **ISO 10218-2** | Integration: the robot with its tooling, workpieces and surroundings |
+| Driverless industrial vehicles | **ISO 3691-4** | Automated guided vehicles and autonomous mobile robots in industrial settings |
+| Personal care robots | **ISO 13482** | Mobile servant, physical assistant and person-carrier robots outside industrial use |
+| Legged and balancing industrial robots | **ISO 25785-1** (in development) | Robots that need active control to stay upright |
+
+Underneath these sit the *functional safety* standards, which apply whenever safety depends on a control system: **ISO 13849-1** and **IEC 62061** for machinery, both descended from the general framework **IEC 61508**.
+
+## What changed in ISO 10218 in 2025
+
+ISO 10218 was revised in 2025, its first major update since 2011. According to the [Association for Advancing Automation](https://www.automate.org/robotics/blogs/updated-iso-10218-faq), the work took nearly eight years and involved experts from more than twenty countries. The main changes:
+
+- **"Collaborative robot" is no longer a term.** The standard now speaks only of a *collaborative application*, on the reasoning that only the actual use of a robot — with its particular tool, workpiece and layout — can be assessed as safe for people to share. A low-force arm holding a knife is not safe.
+- **Functional safety requirements are explicit.** Where the earlier edition left much to interpretation, required performance is now stated per safety function.
+- **Collaborative guidance is built in.** Content from the technical specification ISO/TS 15066 was incorporated into the standard.
+- **Cybersecurity** is addressed in Part 2, to the extent that it affects safety.
+- **Terminology was tightened.** "Safety-rated monitored stop", for instance, became "monitored standstill".
+
+## Sharing space with a robot
+
+There are four recognised ways to make a collaborative application safe.
+
+<Figure number={2} caption="The four collaborative techniques. Three prevent contact with a moving robot; one limits its consequences.">
+  <CollabModes />
+</Figure>
+
+**Speed and separation monitoring** rests on one inequality. The distance between person and robot must always exceed the distance both can cover before the robot has stopped:
+
+$$
+S \;\ge\; \underbrace{v_h\,(T_r + T_s)}_{\text{person keeps walking}} + \underbrace{v_r\,T_r}_{\text{robot, before it reacts}} + \underbrace{S_s}_{\text{robot stopping distance}} + \text{margins}
+$$
+
+with $v_h$ and $v_r$ the speeds of person and robot, $T_r$ the system's reaction time and $T_s$ the robot's stopping time. The margins cover sensor uncertainty and the possibility of reaching over the detection zone. The practical consequence is that the faster and heavier the robot, the larger the empty space it needs around it.
+
+**Power and force limiting** allows contact, and bounds it. Limits on force and pressure are given for each region of the body, and are lower for brief impacts against a body part that is trapped than for one that is free to move away. Meeting them is a matter of the whole application: robot speed, the [inertia behind the contact point](/actuators/actuator-fundamentals/), and above all the shape of the tool. Pressure is force over area, so edges and corners are what fail.
+
+## Functional safety
+
+When safety relies on a control function — "stop if the light curtain is broken", "limit speed when a person is present" — that function must itself be dependable. **ISO 13849-1** grades this with a **Performance Level** from *a* to *e*, defined by the probability of a dangerous failure per hour.
+
+| Performance Level | Probability of dangerous failure per hour |
+|---|---|
+| a | 10⁻⁵ to below 10⁻⁴ |
+| b | 3 × 10⁻⁶ to below 10⁻⁵ |
+| c | 10⁻⁶ to below 3 × 10⁻⁶ |
+| d | 10⁻⁷ to below 10⁻⁶ |
+| e | 10⁻⁸ to below 10⁻⁷ |
+
+The required level comes from the risk assessment: more severe harm, more frequent exposure and less chance of avoiding it all demand a higher level.
+
+The achieved level depends on three things:
+
+- **Architecture**, classed in *categories* B, 1, 2, 3 and 4. The higher categories use two independent channels that check each other, so that a single fault does not cause loss of the safety function.
+- **Component reliability**, expressed as mean time to dangerous failure.
+- **Diagnostic coverage**: the fraction of dangerous faults the system detects in itself.
+
+A dual-channel architecture with good diagnostics — Category 3 at Performance Level d — has long been the usual expectation for industrial robot safety functions.
+
+<Callout title="A consequence for learned controllers">
+A safety function must behave predictably and be verifiable. A neural-network policy is neither, in the sense these standards require. In practice the learned controller is treated as untrusted, and a separate, conventional, safety-rated layer monitors speed, force, position and separation and can stop the machine whatever the policy commands.
+</Callout>
+
+## Stopping
+
+How a machine stops is itself standardised, in IEC 60204-1:
+
+- **Category 0** — remove power immediately. Simple and certain, and the robot coasts or drops.
+- **Category 1** — brake under power to a halt, then remove power.
+- **Category 2** — brake to a halt and hold position with power still applied, under monitoring.
+
+The emergency stop must be a Category 0 or 1 stop.
+
+## Legged and humanoid robots
+
+Existing standards assume that a robot which loses power becomes safe. A robot that balances does the opposite: cut power and it falls. An emergency stop that drops 70 kg onto the nearest person is not a safe state.
+
+This is the gap that **ISO 25785-1** is intended to fill. It concerns industrial mobile robots with actively controlled stability — legged, wheeled or otherwise — and is being drafted by an ISO/TC 299 working group. As of early 2026 it was a working draft; an [overview by i-SCOOP](https://www.i-scoop.eu/iso-25785-1-explained-and-what-it-means-for-humanoid-robot-safety/) describes its central requirements as defined stability limits, fall detection, and a controlled descent in place of a collapse on loss of power.
+
+Until it is published, deployments of legged and humanoid robots near people rest on risk assessment under the existing framework, usually with physical separation — which is why most early deployments keep people and humanoids apart.
+
+## Sources
+
+1. Association for Advancing Automation. "Updated ISO 10218: FAQ." 2025. [automate.org](https://www.automate.org/robotics/blogs/updated-iso-10218-faq)
+2. ISO 10218-1:2025, *Robotics — Safety requirements — Part 1: Industrial robots.* [iso.org](https://www.iso.org/obp/ui/en/#!iso:std:73933:en)
+3. "ISO 13849." Wikipedia, for performance levels and categories. [en.wikipedia.org/wiki/ISO_13849](https://en.wikipedia.org/wiki/ISO_13849)
+4. i-SCOOP. "ISO 25785-1 explained and what it means for humanoid robot safety." [i-scoop.eu](https://www.i-scoop.eu/iso-25785-1-explained-and-what-it-means-for-humanoid-robot-safety/)
+5. ISO 12100:2010, *Safety of machinery — General principles for design — Risk assessment and risk reduction.*

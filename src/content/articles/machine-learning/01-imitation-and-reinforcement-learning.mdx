@@ -1,0 +1,113 @@
+---
+title: "Learning for robots: imitation and reinforcement"
+summary: "Two ways to get a controller without writing one: copy demonstrations, or improve by trial and error. How behaviour cloning and reinforcement learning work, where each breaks, and why modern systems use both."
+category: machine-learning
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [machine-learning, imitation-learning, reinforcement-learning, behaviour-cloning]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import CovariateShift from '../../../figures/CovariateShift.astro';
+import RlLoop from '../../../figures/RlLoop.astro';
+
+A [model-based controller](/control/lqr-and-mpc/) is derived from equations someone wrote down. A **learned policy** is a function, usually a neural network, whose parameters were found by optimisation against data. It maps what the robot observes to what it should do:
+
+$$
+a = \pi_\theta(o)
+$$
+
+Learning is attractive where the equations are hard to write: folding cloth, walking on rubble, anything involving a camera image. There are two basic ways to find $\theta$.
+
+## Imitation learning
+
+Collect demonstrations of the task — usually by a person teleoperating the robot — as pairs of observation and action. Then train the network to predict the demonstrated action from the observation. This is ordinary supervised learning, and in robotics it is called **behaviour cloning**:
+
+$$
+\min_\theta \sum_{(o,\,a^*)} \big\lVert \pi_\theta(o) - a^* \big\rVert^2
+$$
+
+It is simple, stable to train, and needs no reward function and no simulator. A few dozen to a few hundred demonstrations can teach a specific manipulation skill.
+
+### Where it breaks: compounding error
+
+Supervised learning assumes test data resembles training data. A policy violates this by its own actions.
+
+<Figure number={1} caption="Why a cloned policy drifts. The demonstrations never showed how to recover, because the expert never needed to.">
+  <CovariateShift />
+</Figure>
+
+Three remedies are in common use:
+
+- **Collect corrections.** Run the policy, let it drift, have the expert label what should have been done in those states, and retrain. This is the idea behind [DAgger](https://arxiv.org/abs/1011.0686).
+- **Predict sequences, not single steps.** Output a *chunk* of the next several actions and execute them before looking again. There are fewer decision points at which to go wrong. [ACT](https://arxiv.org/abs/2304.13705) popularised this for fine manipulation.
+- **Broaden the data.** Demonstrations that include recoveries, varied starting conditions and multiple operators cover more of the states the policy will meet.
+
+### Where it breaks: averaging
+
+People solve the same task in different ways — pass the obstacle on the left or on the right. A network trained to minimise squared error will output the *average* of the demonstrations, which may go straight into the obstacle.
+
+The fix is a policy that represents a whole distribution over actions. [Diffusion Policy](https://arxiv.org/abs/2303.04137) does this by learning to turn random noise into an action sequence step by step, and can commit to one mode or the other. Diffusion and the closely related flow matching are now the standard output stage for manipulation policies.
+
+## Reinforcement learning
+
+**Reinforcement learning** (RL) needs no demonstrations. The designer writes a **reward** — a number scoring how well things are going — and the policy improves by trial and error.
+
+<Figure number={2} caption="The reinforcement learning loop.">
+  <RlLoop />
+</Figure>
+
+The goal is to maximise the expected sum of future rewards, with later rewards discounted by a factor $\gamma$ slightly below 1:
+
+$$
+\max_\theta\; \mathbb{E}\left[\sum_{t} \gamma^{t}\, r_t\right]
+$$
+
+The method used for nearly all legged locomotion is a **policy gradient** algorithm, most often [PPO](https://arxiv.org/abs/1707.06347). In outline: run the current policy, see which actions led to better-than-expected outcomes, nudge the network to make those more likely, and limit the size of each nudge so training stays stable. A second network, the *critic*, learns to predict future reward and supplies the "expected" baseline.
+
+### Strengths
+
+- **It can exceed its teacher.** There is no demonstration to be limited by. RL-trained quadrupeds recover from falls and cross terrain in ways nobody programmed.
+- **It discovers recoveries by itself.** The policy visits bad states during training and learns to get out of them, which is exactly what behaviour cloning lacks.
+
+### Costs
+
+- **Sample hunger.** Millions to billions of steps. That is feasible only in simulation, which brings the [sim-to-real problem](/machine-learning/sim-to-real/).
+- **Reward design.** The policy optimises exactly what the reward says, not what was meant. A reward for forward speed alone yields a robot that lunges and falls. Practical rewards have a dozen or more terms for smoothness, energy, foot clearance and posture, and tuning them is most of the work.
+- **Exploration.** If reward arrives only when a long task is finished, random actions never find it. This is why RL has been far more successful for locomotion, where every step gives feedback, than for long manipulation tasks.
+
+<Callout title="Locomotion versus manipulation">
+The two fields settled on different methods for good reasons. Locomotion is easy to simulate and to reward, and hard to demonstrate — nobody can teleoperate twelve leg joints in real time. Manipulation is easy to demonstrate and hard to simulate or reward: contact with cloth, liquids and clutter is difficult to model, and "the table is tidy" is hard to score. So legs mostly use reinforcement learning, and hands mostly use imitation.
+</Callout>
+
+## Comparison
+
+| | Behaviour cloning | Reinforcement learning |
+|---|---|---|
+| **Needs** | Demonstrations | Reward function and a simulator |
+| **Data cost** | Human teleoperation time | Computation |
+| **Performance ceiling** | Roughly the demonstrator | Can exceed it |
+| **Typical failure** | Drifts into unseen states | Exploits flaws in reward or simulator |
+| **Best established for** | Manipulation | Locomotion, in-hand reorientation |
+
+## Combinations
+
+The methods are complementary and are increasingly mixed.
+
+- **Imitate, then improve.** Start from a cloned policy and fine-tune with RL, which avoids the exploration problem.
+- **Imitate motion, reward the task.** In locomotion, a reward term for resembling reference motion — from motion capture, say — gives natural-looking gaits without hand-tuning style.
+- **Teacher and student.** Train a policy with RL in simulation using information unavailable on the real robot, then clone it into a policy that uses only real sensors. See [sim-to-real](/machine-learning/sim-to-real/).
+- **Pretrain broadly, specialise narrowly.** Train one large model on demonstrations from many robots and tasks, then adapt it to a new task with a little data. That is the idea behind [vision-language-action models](/vla/what-a-vla-is/).
+
+## What a learned policy does not replace
+
+A policy typically outputs joint position targets at tens of hertz. Underneath, the same [joint impedance loop](/control/impedance-control/) and [current loop](/actuators/motor-drive-algorithms/) run at kilohertz rates. Learning replaced the middle of the control stack, not the bottom of it, and a policy is only as good as the actuators' ability to do what it asks.
+
+## Sources
+
+1. Ross, S., Gordon, G. and Bagnell, J. A. "A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning." AISTATS, 2011. [arXiv:1011.0686](https://arxiv.org/abs/1011.0686)
+2. Zhao, T. Z., Kumar, V., Levine, S. and Finn, C. "Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware." 2023. [arXiv:2304.13705](https://arxiv.org/abs/2304.13705)
+3. Chi, C. et al. "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion." 2023. [arXiv:2303.04137](https://arxiv.org/abs/2303.04137)
+4. Schulman, J. et al. "Proximal Policy Optimization Algorithms." 2017. [arXiv:1707.06347](https://arxiv.org/abs/1707.06347)
+5. Sutton, R. S. and Barto, A. G. *Reinforcement Learning: An Introduction*, 2nd edition. MIT Press, 2018. Free online: [incompleteideas.net](http://incompleteideas.net/book/the-book-2nd.html)

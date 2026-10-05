@@ -1,0 +1,21 @@
+---
+// The three-step hierarchy of risk reduction.
+const tiers = [
+  { n: '1', name: 'Inherently safe design', sub: 'Remove the hazard: less force, less speed, less mass, no pinch points', cls: 'soft2' },
+  { n: '2', name: 'Safeguarding', sub: 'Keep people and hazard apart, or stop the hazard: guards, scanners, light curtains, safety functions', cls: 'soft1' },
+  { n: '3', name: 'Information for use', sub: 'What remains: warnings, training, procedures, protective equipment', cls: 'soft3' },
+];
+---
+<svg class="fig" viewBox="0 0 720 250" role="img" aria-labelledby="rr2-title rr2-desc">
+  <title id="rr2-title">The hierarchy of risk reduction</title>
+  <desc id="rr2-desc">Three measures applied in strict order. First, inherently safe design that removes the hazard. Second, safeguarding that separates people from the hazard or stops it. Third, information for use covering whatever risk remains. A later step may not be used as a substitute for an earlier one that was practicable.</desc>
+  {tiers.map((t, i) => (
+    <g>
+      <rect class={t.cls} x={40 + i * 40} y={24 + i * 68} width={640 - i * 40} height="56" rx="10" />
+      <circle class="surface wire" cx={72 + i * 40} cy={52 + i * 68} r="15" /><text x={72 + i * 40} y={57 + i * 68} text-anchor="middle" class="t-strong">{t.n}</text>
+      <text x={100 + i * 40} y={47 + i * 68} class="t-strong">{t.name}</text>
+      <text x={100 + i * 40} y={65 + i * 68} class="t-small">{t.sub}</text>
+    </g>
+  ))}
+  <text x="360" y="240" text-anchor="middle" class="t-small t-muted">Apply in order. A warning sign is not an acceptable substitute for a guard that could have been fitted.</text>
+</svg>

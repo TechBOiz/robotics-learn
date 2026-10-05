@@ -1,0 +1,21 @@
+---
+// Anatomy of a vision-language-action model.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 720 260" role="img" aria-labelledby="va-title va-desc">
+  <title id="va-title">Anatomy of a vision-language-action model</title>
+  <desc id="va-desc">Camera images, a language instruction and the robot's joint state enter a pretrained vision-language model. Its output feeds an action head, which produces a short sequence of future actions called an action chunk. The robot executes the chunk and the cycle repeats.</desc>
+  <defs><ArrowDef id="ah-va" /></defs>
+  <rect class="soft1" x="14" y="30" width="150" height="46" rx="8" /><text x="89" y="50" text-anchor="middle" class="t-strong">Camera images</text><text x="89" y="66" text-anchor="middle" class="t-small t-muted">head, wrist</text>
+  <rect class="soft2" x="14" y="92" width="150" height="46" rx="8" /><text x="89" y="112" text-anchor="middle" class="t-strong">Instruction</text><text x="89" y="128" text-anchor="middle" class="t-small t-muted">"put the cup in the sink"</text>
+  <rect class="box" x="14" y="154" width="150" height="46" rx="8" /><text x="89" y="174" text-anchor="middle" class="t-strong">Robot state</text><text x="89" y="190" text-anchor="middle" class="t-small t-muted">joint angles, gripper</text>
+  <path class="wire" d="M164 53 H196 V115 M164 115 H228 M164 177 H196 V115" /><line class="wire" x1="196" y1="115" x2="228" y2="115" marker-end="url(#ah-va)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="230" y="52" width="190" height="126" rx="12" />
+  <text x="325" y="88" text-anchor="middle" class="t-strong">Vision-language model</text><text x="325" y="108" text-anchor="middle" class="t-small">pretrained on internet</text><text x="325" y="124" text-anchor="middle" class="t-small">images and text</text><text x="325" y="152" text-anchor="middle" class="t-small t-muted">supplies meaning: what</text><text x="325" y="167" text-anchor="middle" class="t-small t-muted">things are, what was asked</text>
+  <line class="wire" x1="420" y1="115" x2="452" y2="115" marker-end="url(#ah-va)" />
+  <rect class="soft3 c3" stroke-width="1.4" x="454" y="68" width="130" height="94" rx="12" /><text x="519" y="100" text-anchor="middle" class="t-strong">Action head</text><text x="519" y="120" text-anchor="middle" class="t-small">tokens, diffusion</text><text x="519" y="136" text-anchor="middle" class="t-small">or flow matching</text>
+  <line class="wire" x1="584" y1="115" x2="612" y2="115" marker-end="url(#ah-va)" />
+  {[0, 1, 2, 3, 4, 5].map((i) => <rect class="f3" opacity={1 - i * 0.13} x={616 + i * 15} y="92" width="11" height="46" rx="2" />)}
+  <text x="660" y="160" text-anchor="middle" class="t-small t-strong">action chunk</text><text x="660" y="176" text-anchor="middle" class="t-small t-muted">the next ~1 s</text>
+  <path class="wire-muted dash" d="M660 186 V232 H89 V202" marker-end="url(#ah-va)" /><text x="374" y="250" text-anchor="middle" class="t-small t-muted">the robot moves, new images arrive, and the model is run again</text>
+</svg>

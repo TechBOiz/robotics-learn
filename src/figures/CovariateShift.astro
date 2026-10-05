@@ -1,0 +1,21 @@
+---
+// Compounding error in behaviour cloning.
+const X = (t: number) => 60 + t * 580, Y = (v: number) => 150 - v * 110;
+const ts = Array.from({ length: 101 }, (_, i) => i / 100);
+const expert = (t: number) => 0.25 * Math.sin(t * 5);
+const learner = (t: number) => expert(t) + (t < 0.15 ? 0 : 0.02 * (Math.exp(4.2 * (t - 0.15)) - 1));
+const line = (f: (t: number) => number) => ts.map((t) => `${X(t).toFixed(1)},${Y(f(t)).toFixed(1)}`).join(' ');
+const band = ts.map((t) => `${X(t).toFixed(1)},${Y(expert(t) + 0.16).toFixed(1)}`).join(' ') + ' ' + ts.slice().reverse().map((t) => `${X(t).toFixed(1)},${Y(expert(t) - 0.16).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 700 290" role="img" aria-labelledby="cv-title cv-desc">
+  <title id="cv-title">Compounding error in behaviour cloning</title>
+  <desc id="cv-desc">The expert's demonstrations cover a narrow band of states around its own path. A cloned policy makes a small error, which moves it slightly outside that band into states it never saw during training. There its errors are larger, which moves it further out, and the deviation grows faster and faster.</desc>
+  <polygon class="soft2" points={band} />
+  <polyline class="c2 thick" points={line(expert)} /><polyline class="c3 thick" points={line(learner)} />
+  <line class="axis" x1="60" y1="250" x2="646" y2="250" /><text x="353" y="270" text-anchor="middle" class="t-muted">Time</text>
+  <text x={X(0.02)} y="236" class="t-small t-c2">expert path, and the states seen in training (shaded)</text>
+  <text x={X(0.86)} y={Y(learner(0.86)) - 4} text-anchor="end" class="t-small t-strong t-c3">cloned policy</text>
+  <circle class="f3" cx={X(0.2)} cy={Y(learner(0.2))} r="5" /><line class="link" x1={X(0.2)} y1={Y(learner(0.2)) - 6} x2={X(0.16)} y2="34" /><text x={X(0.02)} y="26" class="t-small">a small early error…</text>
+  <line class="link" x1={X(0.55)} y1={Y(learner(0.55)) - 4} x2={X(0.46)} y2="34" /><text x={X(0.3)} y="26" class="t-small">…leads to unfamiliar states, where errors are larger…</text>
+  <text x={X(1)} y="236" text-anchor="end" class="t-small t-c3">…and the policy never recovers</text>
+</svg>

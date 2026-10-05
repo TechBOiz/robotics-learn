@@ -1,0 +1,23 @@
+---
+// The data pyramid for robot foundation models.
+const tiers = [
+  { y: 30, w: 370, name: 'Real robot teleoperation', sub: 'exactly the right data; slowest and costliest to collect', cls: 'soft3' },
+  { y: 86, w: 450, name: 'Simulation and synthetic data', sub: 'cheap and unlimited; only as good as the simulator', cls: 'soft4' },
+  { y: 142, w: 540, name: 'Human video', sub: 'shows how tasks are done; no robot actions attached', cls: 'soft1' },
+  { y: 198, w: 630, name: 'Internet images and text', sub: 'vast; teaches what things are, not how to move', cls: 'soft2' },
+];
+---
+<svg class="fig" viewBox="0 0 720 290" role="img" aria-labelledby="dp-title dp-desc">
+  <title id="dp-title">The data pyramid for robot foundation models</title>
+  <desc id="dp-desc">Four tiers from base to tip. The base is internet images and text: enormous in quantity but with no information about how to move. Above it is human video, then simulation and synthetic data, and at the tip real robot teleoperation data: the smallest in quantity and the most directly useful.</desc>
+  {tiers.map((t) => (
+    <g>
+      <rect class={t.cls} x={360 - t.w / 2} y={t.y} width={t.w} height="48" rx="8" />
+      <text x="360" y={t.y + 21} text-anchor="middle" class="t-strong">{t.name}</text>
+      <text x="360" y={t.y + 38} text-anchor="middle" class="t-small t-muted">{t.sub}</text>
+    </g>
+  ))}
+  <text x="40" y="48" class="t-small t-strong">scarce,</text><text x="40" y="64" class="t-small t-strong">specific</text>
+  <text x="40" y="270" class="t-small t-strong">abundant, general</text>
+  <text x="680" y="270" text-anchor="end" class="t-small t-muted">width suggests quantity; not to scale</text>
+</svg>

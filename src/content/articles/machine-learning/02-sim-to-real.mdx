@@ -1,0 +1,109 @@
+---
+title: "Sim-to-real: training in simulation, running on hardware"
+summary: "Reinforcement learning needs more experience than a real robot can survive, so policies are trained in simulation. Why they then fail on hardware, and the techniques — randomisation, actuator modelling, privileged teachers — that close the gap."
+category: machine-learning
+order: 2
+level: intermediate
+updated: 2026-10-05
+tags: [machine-learning, sim-to-real, domain-randomisation, reinforcement-learning]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import SimToRealPipeline from '../../../figures/SimToRealPipeline.astro';
+import DomainRandomisation from '../../../figures/DomainRandomisation.astro';
+
+[Reinforcement learning](/machine-learning/imitation-and-reinforcement-learning/) learns by failing, many millions of times. On hardware that would take years and destroy the robot. In a simulator it takes minutes and costs electricity. The catch is that the policy learns to control the *simulated* robot, and the real one differs. Closing that difference is the **sim-to-real** problem.
+
+## The pipeline
+
+<Figure number={1} caption="Training happens entirely in simulation. The real robot only ever runs the finished policy.">
+  <SimToRealPipeline />
+</Figure>
+
+The change that made this practical was running the physics on a graphics processor, with thousands of robots simulated side by side. In 2021, [Rudin and colleagues](https://arxiv.org/abs/2109.11978) showed a quadruped policy for flat ground trained in under four minutes, and one for rough terrain in about twenty, on a single workstation GPU. Iterating on a controller became a matter of minutes instead of days.
+
+## Where the reality gap comes from
+
+Rigid-body dynamics are simulated accurately. The errors are concentrated in a few places.
+
+- **Actuators.** A simulator typically applies the commanded torque instantly and exactly. A real actuator has a bandwidth limit, friction, backlash, torque saturation that depends on speed, and a response that changes with temperature. This is usually the largest single source of error.
+- **Latency.** Sensing, computing and communicating take several milliseconds, and the delay varies. A policy trained with none will oscillate.
+- **Contact.** Friction coefficients, ground stiffness and restitution are approximations at best. Deformable ground — grass, gravel, carpet — is rarely modelled at all.
+- **Mass properties.** The CAD model omits cables, fasteners, adhesive and payload.
+- **Sensing.** Real sensors have noise, bias, drift and dropouts. See [IMUs](/sensors/inertial-measurement-units/) and [encoders](/sensors/encoders/).
+
+<Callout title="A policy will exploit whatever the simulator gets wrong">
+An optimiser has no notion of realism. If the simulated contact model lets a foot gain traction by vibrating, the policy will learn to vibrate. Much of sim-to-real work is finding and removing these exploits.
+</Callout>
+
+## Domain randomisation
+
+The most widely used remedy is to stop trying to make the simulator exactly right. Instead, train across many simulators that differ from one another.
+
+<Figure number={2} caption="The real world only has to fall inside the range the policy trained on.">
+  <DomainRandomisation />
+</Figure>
+
+Each simulated robot gets its own randomly drawn parameters, redrawn every episode. A typical list:
+
+| Randomised | Examples |
+|---|---|
+| **Dynamics** | Link masses, centre-of-mass position, joint friction and damping |
+| **Actuation** | Motor strength, PD gains, torque limits |
+| **Timing** | Control delay, action hold time |
+| **Contact** | Ground friction and restitution, terrain shape |
+| **Sensing** | Noise and bias on every observation |
+| **Disturbances** | Random pushes, added payload |
+| **Appearance** | Textures, lighting, camera pose — for policies that use images |
+
+The policy cannot rely on any one value, so it learns a strategy that works across the range. [Tobin and colleagues](https://arxiv.org/abs/1703.06907) introduced the idea for vision; it now applies to everything.
+
+The trade-off is real. Randomise too little and the policy fails on hardware. Randomise too much and the task becomes harder than reality, producing an overly cautious policy — a robot that shuffles when it could stride. Ranges are tuned, and narrowed where measurement allows.
+
+## Making the simulator better
+
+Randomisation covers uncertainty. It works best alongside efforts to reduce that uncertainty.
+
+**System identification.** Measure what can be measured: weigh the links, record step responses, fit friction parameters. Then randomise in a narrow band around the measured values.
+
+**Learned actuator models.** [Hwangbo and colleagues](https://arxiv.org/abs/1901.08652) recorded real actuator data and trained a small network to predict the torque an actuator actually produces, given its recent history of position errors and velocities. Dropped into the simulator in place of the ideal model, it captures the delays and nonlinearities that are too awkward to model by hand. This matters most for actuators with complicated internal dynamics, such as series elastic ones.
+
+**Transparent hardware.** The alternative is to build actuators that behave like the simple model. A [quasi-direct-drive](/actuators/designing-a-quasi-direct-drive-actuator/) joint with a fast current loop comes close to the ideal torque source the simulator assumes. This is a large part of why that actuator style and learned locomotion spread together.
+
+## Privileged information: teacher and student
+
+Some quantities are known exactly in simulation and unavailable on the robot: ground friction, terrain height under each foot, the force of a push. A policy that could see them would be easier to train.
+
+The **teacher–student** method uses both facts:
+
+1. Train a *teacher* policy with RL, giving it the privileged information. It learns well and quickly.
+2. Train a *student* policy that sees only what the real robot's sensors provide — usually a short history of joint and IMU readings — to reproduce the teacher's actions. This step is [supervised learning](/machine-learning/imitation-and-reinforcement-learning/).
+
+The student has to infer the hidden quantities from the recent past: how the legs responded to the last few commands reveals a great deal about the ground. [Rapid Motor Adaptation](https://arxiv.org/abs/2107.04034) makes this explicit, training a module that estimates a compact description of the environment from history and updates it continuously as conditions change.
+
+## Other ingredients
+
+- **Curricula.** Begin with easy conditions and raise the difficulty as the policy improves. Rough-terrain training typically promotes each simulated robot to harder terrain once it masters its current level.
+- **Observation history.** Giving the policy the last several time steps lets it infer velocity, contact and delay.
+- **Action smoothing.** Reward terms that penalise rapid changes in action keep commands within what real actuators can track, and reduce wear.
+- **Asymmetric training.** The critic, used only during training, may see privileged information even when the policy does not.
+
+## Before running on hardware
+
+A sensible sequence when moving a new policy to a robot:
+
+1. **Test in a different simulator.** If a policy trained in one physics engine fails in another, it has overfitted to the first.
+2. **Replay logged data.** Feed real sensor recordings to the policy and check that its outputs are sane.
+3. **Hang the robot from a gantry**, or run with reduced gains and torque limits.
+4. **Have an emergency stop within reach, and log everything.** The first failures identify what the simulator is missing.
+
+## Limits
+
+Sim-to-real works well for locomotion and for some in-hand manipulation, where rigid contact is an acceptable model. It remains difficult for tasks dominated by things that are hard to simulate: cloth, liquids, cables, food, and realistic camera images of cluttered scenes. For those, [learning from real demonstrations](/vla/what-a-vla-is/) is currently the more successful route, and combining the two is an active research direction.
+
+## Sources
+
+1. Rudin, N., Hoeller, D., Reist, P. and Hutter, M. "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning." 2021. [arXiv:2109.11978](https://arxiv.org/abs/2109.11978)
+2. Hwangbo, J. et al. "Learning Agile and Dynamic Motor Skills for Legged Robots." *Science Robotics*, 2019. [arXiv:1901.08652](https://arxiv.org/abs/1901.08652)
+3. Tobin, J. et al. "Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World." 2017. [arXiv:1703.06907](https://arxiv.org/abs/1703.06907)
+4. Kumar, A., Fu, Z., Pathak, D. and Malik, J. "RMA: Rapid Motor Adaptation for Legged Robots." 2021. [arXiv:2107.04034](https://arxiv.org/abs/2107.04034)
