@@ -103,6 +103,7 @@ const order = outline.flatMap((t) => t.articles.map((a) => ({ id: a.id, topic: t
               sec.querySelectorAll('.rows li').forEach(function (li) { var show = lvl === 'all' || li.getAttribute('data-level') === lvl; li.hidden = !show; if (show) any = true; });
               sec.hidden = !any;
             });
+            document.querySelectorAll('.stage').forEach(function (g) { g.hidden = !g.querySelector('.topic:not([hidden])'); });
           }
         });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
@@ -114,6 +115,7 @@ const order = outline.flatMap((t) => t.articles.map((a) => ({ id: a.id, topic: t
             d.querySelectorAll('li').forEach(function (li) { var hit = !q || li.textContent.toLowerCase().indexOf(q) !== -1; li.hidden = !hit; if (hit) any = true; });
             d.hidden = !any; if (q && any) d.open = true; if (any) anyAll = true;
           });
+          document.querySelectorAll('.side-stage').forEach(function (g) { g.hidden = !g.querySelector('.side-topic:not([hidden])'); });
           var empty = document.querySelector('[data-filter-empty]'); if (empty) empty.style.display = anyAll ? 'none' : 'block';
         });
         var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));

@@ -1,34 +1,39 @@
 ---
-import { getOutline, levelLabel } from '../lib/outline';
+import { byStage, getOutline, levelLabel } from '../lib/outline';
 import { href } from '../lib/paths';
 
 interface Props { currentTopic?: string; currentArticle?: string; home?: boolean }
 const { currentTopic, currentArticle, home = false } = Astro.props;
-const outline = await getOutline();
+const stages = byStage(await getOutline());
 ---
 <aside class="sidebar" id="sidebar">
   <label class="visually-hidden" for="side-filter">Filter articles</label>
   <input class="side-filter" id="side-filter" type="search" placeholder="Filter articles" autocomplete="off" data-filter />
   <nav aria-label="Course outline">
     <a class="side-home" href={href('/')} aria-current={home ? 'page' : undefined}>All topics</a>
-    {outline.map((t) => (
-      <details class="side-topic" open={t.id === currentTopic} data-topic={t.id}>
-        <summary>
-          <span class="side-topic-name">{t.name}</span>
-          <span class="side-count" data-progress-for={t.id} data-total={t.articles.length}>0/{t.articles.length}</span>
-        </summary>
-        <ol>
-          {t.articles.map((a) => (
-            <li>
-              <a href={a.url} data-article-id={a.id} data-level={a.level} aria-current={a.id === currentArticle ? 'page' : undefined}>
-                <span class="lvl" aria-hidden="true"></span>
-                <span>{a.title}<span class="visually-hidden">, {levelLabel[a.level]}</span></span>
-                <span class="check" aria-hidden="true">✓</span>
-              </a>
-            </li>
-          ))}
-        </ol>
-      </details>
+    {stages.map((st, i) => (
+      <div class="side-stage">
+        <p class="side-stage-name"><span>{i + 1}</span>{st.stage}</p>
+        {st.topics.map((t) => (
+          <details class="side-topic" open={t.id === currentTopic} data-topic={t.id}>
+            <summary>
+              <span class="side-topic-name">{t.name}</span>
+              <span class="side-count" data-progress-for={t.id} data-total={t.articles.length}>0/{t.articles.length}</span>
+            </summary>
+            <ol>
+              {t.articles.map((a) => (
+                <li>
+                  <a href={a.url} data-article-id={a.id} data-level={a.level} aria-current={a.id === currentArticle ? 'page' : undefined}>
+                    <span class="lvl" aria-hidden="true"></span>
+                    <span>{a.title}<span class="visually-hidden">, {levelLabel[a.level]}</span></span>
+                    <span class="check" aria-hidden="true">✓</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </details>
+        ))}
+      </div>
     ))}
     <p class="side-empty" data-filter-empty>No article titles match.</p>
   </nav>

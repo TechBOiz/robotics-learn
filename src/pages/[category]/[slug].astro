@@ -2,17 +2,19 @@
 import 'katex/dist/katex.min.css';
 import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import { getCategory } from '../../data/categories';
+import { categories, getCategory } from '../../data/categories';
 import { getArticles, type Article } from '../../lib/articles';
 import { levelLabel } from '../../lib/outline';
 import { articleHref, formatDate, href, readingMinutes, splitId } from '../../lib/paths';
 
 export async function getStaticPaths() {
-  const articles = await getArticles();
-  return articles.map((article) => {
-    const siblings = articles.filter((a) => a.data.category === article.data.category);
+  const all = await getArticles();
+  // Whole-curriculum order: topics in learning order, then articles within each topic.
+  const ordered = categories.flatMap((c) => all.filter((a) => a.data.category === c.id));
+  return ordered.map((article, k) => {
+    const siblings = ordered.filter((a) => a.data.category === article.data.category);
     const i = siblings.findIndex((a) => a.id === article.id);
-    return { params: splitId(article.id), props: { article, prev: siblings[i - 1], next: siblings[i + 1], position: i + 1, total: siblings.length } };
+    return { params: splitId(article.id), props: { article, prev: ordered[k - 1], next: ordered[k + 1], position: i + 1, total: siblings.length } };
   });
 }
 
@@ -22,6 +24,7 @@ const { article, prev, next, position, total } = Astro.props;
 const { Content, headings } = await render(article);
 const category = getCategory(article.data.category);
 const toc = headings.filter((h) => h.depth === 2);
+const label = (other: Article, word: string) => (other.data.category === article.data.category ? word : `${word} topic: ${getCategory(other.data.category).name}`);
 ---
 <Base title={article.data.title} description={article.data.summary} currentTopic={category.id} currentArticle={article.id}>
   <article>
@@ -45,8 +48,8 @@ const toc = headings.filter((h) => h.depth === 2);
             {next && <a class="btn" href={articleHref(next.id)} data-mark-on-click={article.id}>Mark as read and continue</a>}
           </div>
           <nav class="pager" aria-label="In this topic">
-            {prev && <a class="prev" href={articleHref(prev.id)}><small>Previous</small><strong>{prev.data.title}</strong></a>}
-            {next && <a class="next" href={articleHref(next.id)}><small>Next</small><strong>{next.data.title}</strong></a>}
+            {prev && <a class="prev" href={articleHref(prev.id)}><small>{label(prev, 'Previous')}</small><strong>{prev.data.title}</strong></a>}
+            {next && <a class="next" href={articleHref(next.id)}><small>{label(next, 'Next')}</small><strong>{next.data.title}</strong></a>}
           </nav>
         </div>
       </div>

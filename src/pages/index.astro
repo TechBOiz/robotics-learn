@@ -1,17 +1,18 @@
 ---
 import Base from '../layouts/Base.astro';
 import ArticleRows from '../components/ArticleRows.astro';
-import { getOutline } from '../lib/outline';
+import { byStage, getOutline } from '../lib/outline';
 
 const outline = await getOutline();
+const stages = byStage(outline);
 const first = outline[0]?.articles[0];
 const total = outline.reduce((n, t) => n + t.articles.length, 0);
 ---
 <Base home>
   <h1 class="page-title">Learn how robots work</h1>
   <p class="lede">
-    {total} articles across {outline.length} topics, from the motors that move a robot to the models that decide what it does.
-    Each one explains the reasoning and links its sources.
+    {total} articles across {outline.length} topics, arranged in {stages.length} stages so each one builds on the last:
+    the mathematics of motion first, then hardware, control, perception, planning, learning and deployment.
   </p>
 
   <div class="resume" data-resume>
@@ -30,14 +31,19 @@ const total = outline.reduce((n, t) => n + t.articles.length, 0);
     <button class="chip" type="button" data-level-filter="advanced" aria-pressed="false"><span class="lvl advanced" aria-hidden="true"></span>Advanced</button>
   </div>
 
-  {outline.map((t) => (
-    <section class="topic" aria-labelledby={`topic-${t.id}`}>
-      <div class="topic-head">
-        <h2 id={`topic-${t.id}`}><a href={t.url}>{t.name}</a></h2>
-        <p>{t.blurb}</p>
-        <span class="side-count" data-progress-for={t.id}>0/{t.articles.length}</span>
-      </div>
-      <ArticleRows articles={t.articles} />
-    </section>
+  {stages.map((st, i) => (
+    <div class="stage">
+      <p class="stage-name"><span>Stage {i + 1}</span>{st.stage}</p>
+      {st.topics.map((t) => (
+        <section class="topic" aria-labelledby={`topic-${t.id}`}>
+          <div class="topic-head">
+            <h2 id={`topic-${t.id}`}><a href={t.url}>{t.name}</a></h2>
+            <p>{t.blurb}</p>
+            <span class="side-count" data-progress-for={t.id}>0/{t.articles.length}</span>
+          </div>
+          <ArticleRows articles={t.articles} />
+        </section>
+      ))}
+    </div>
   ))}
 </Base>

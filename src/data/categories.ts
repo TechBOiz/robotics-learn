@@ -1,5 +1,7 @@
 export interface Category {
   id: string;
+  /** Stage of the curriculum this topic belongs to. Topics are listed in learning order. */
+  stage: string;
   name: string;
   blurb: string;
   /** Matching id in data/taxonomy/domains.yaml at the repository root. */
@@ -10,21 +12,24 @@ export interface Category {
 
 export const categories: Category[] = [
   {
-    id: 'actuators',
-    name: 'Actuators & Drives',
-    blurb: 'How robots turn electrical, fluid and chemical energy into force and motion.',
-    domain: 'embedded-mechatronics',
-    planned: ['Brushless motor construction and winding design', 'Dexterous hand actuation', 'Hydraulic and electro-hydrostatic actuators', 'Actuator testing and characterisation'],
-  },
-  {
     id: 'dynamics',
+    stage: 'Foundations',
     name: 'Kinematics & Dynamics',
     blurb: 'Frames, Jacobians and the equations of motion that every controller leans on.',
     domain: 'mechanics',
     planned: ['Spatial vectors and twists', 'Contact models and friction', 'System identification'],
   },
   {
+    id: 'actuators',
+    stage: 'Hardware',
+    name: 'Actuators & Drives',
+    blurb: 'How robots turn electrical, fluid and chemical energy into force and motion.',
+    domain: 'embedded-mechatronics',
+    planned: ['Brushless motor construction and winding design', 'Dexterous hand actuation', 'Hydraulic and electro-hydrostatic actuators', 'Actuator testing and characterisation'],
+  },
+  {
     id: 'sensors',
+    stage: 'Hardware',
     name: 'Sensors',
     blurb: 'Encoders, IMUs, force/torque sensing, tactile skins, cameras and LiDAR.',
     domain: 'embedded-mechatronics',
@@ -32,6 +37,7 @@ export const categories: Category[] = [
   },
   {
     id: 'control',
+    stage: 'Control',
     name: 'Control',
     blurb: 'From PID to impedance control, model-predictive control and whole-body control.',
     domain: 'control',
@@ -39,6 +45,7 @@ export const categories: Category[] = [
   },
   {
     id: 'computer-vision',
+    stage: 'Perception',
     name: 'Computer Vision',
     blurb: 'Camera models, features, 3D vision and the learned perception stack.',
     domain: 'computer-vision',
@@ -46,6 +53,7 @@ export const categories: Category[] = [
   },
   {
     id: 'state-estimation',
+    stage: 'Perception',
     name: 'SLAM & State Estimation',
     blurb: 'Bayes filters, sensor fusion and building maps while moving through them.',
     domain: 'slam-estimation',
@@ -53,27 +61,15 @@ export const categories: Category[] = [
   },
   {
     id: 'planning',
+    stage: 'Planning and manipulation',
     name: 'Motion Planning',
     blurb: 'Sampling, search and optimization for getting from here to there without collisions.',
     domain: 'planning',
     planned: ['Task and motion planning', 'Footstep and contact planning', 'Planning under uncertainty'],
   },
   {
-    id: 'machine-learning',
-    name: 'Machine Learning',
-    blurb: 'The ML and deep-learning foundations that robot learning is built on.',
-    domain: 'deep-learning',
-    planned: ['Reward design for locomotion', 'Diffusion and flow-matching policies in detail', 'Teleoperation and data collection'],
-  },
-  {
-    id: 'vla',
-    name: 'VLA & Robot Foundation Models',
-    blurb: 'Vision-language-action models and generalist robot policies.',
-    domain: 'vla',
-    planned: ['Fine-tuning a VLA for a new robot', 'Evaluating generalist policies', 'World models for robotics'],
-  },
-  {
     id: 'manipulation',
+    stage: 'Planning and manipulation',
     name: 'Manipulation & Hands',
     blurb: 'Grasping, contact, dexterous hands and end-of-arm tooling.',
     domain: 'manipulation',
@@ -81,13 +77,31 @@ export const categories: Category[] = [
   },
   {
     id: 'simulation',
+    stage: 'Simulation and learning',
     name: 'Simulation & Tooling',
     blurb: 'ROS 2, physics simulators and the software that holds a robot together.',
     domain: 'tooling-sim',
     planned: ['ROS 2 concepts', 'Building a robot model step by step', 'Real-time software on a robot'],
   },
   {
+    id: 'machine-learning',
+    stage: 'Simulation and learning',
+    name: 'Machine Learning',
+    blurb: 'The ML and deep-learning foundations that robot learning is built on.',
+    domain: 'deep-learning',
+    planned: ['Reward design for locomotion', 'Diffusion and flow-matching policies in detail', 'Teleoperation and data collection'],
+  },
+  {
+    id: 'vla',
+    stage: 'Simulation and learning',
+    name: 'VLA & Robot Foundation Models',
+    blurb: 'Vision-language-action models and generalist robot policies.',
+    domain: 'vla',
+    planned: ['Fine-tuning a VLA for a new robot', 'Evaluating generalist policies', 'World models for robotics'],
+  },
+  {
     id: 'safety',
+    stage: 'Deployment',
     name: 'Safety & Standards',
     blurb: 'Functional safety, risk assessment and the standards industrial robots ship against.',
     domain: 'safety-standards',

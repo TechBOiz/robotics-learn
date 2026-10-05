@@ -3,7 +3,7 @@ import { getArticles } from './articles';
 import { articleHref, href, readingMinutes } from './paths';
 
 export interface OutlineArticle { id: string; title: string; summary: string; level: 'intro' | 'intermediate' | 'advanced'; minutes: number; url: string }
-export interface OutlineTopic { id: string; name: string; blurb: string; url: string; articles: OutlineArticle[] }
+export interface OutlineTopic { id: string; stage: string; name: string; blurb: string; url: string; articles: OutlineArticle[] }
 
 export const levelLabel = { intro: 'Intro', intermediate: 'Intermediate', advanced: 'Advanced' } as const;
 
@@ -13,6 +13,7 @@ export async function getOutline(): Promise<OutlineTopic[]> {
   return categories
     .map((c) => ({
       id: c.id,
+      stage: c.stage,
       name: c.name,
       blurb: c.blurb,
       url: href(`/${c.id}/`),
@@ -21,4 +22,15 @@ export async function getOutline(): Promise<OutlineTopic[]> {
         .map((a) => ({ id: a.id, title: a.data.title, summary: a.data.summary, level: a.data.level, minutes: readingMinutes(a.body), url: articleHref(a.id) })),
     }))
     .filter((t) => t.articles.length > 0);
+}
+
+/** Consecutive topics that share a stage, in order. */
+export function byStage(outline: OutlineTopic[]): { stage: string; topics: OutlineTopic[] }[] {
+  const stages: { stage: string; topics: OutlineTopic[] }[] = [];
+  for (const t of outline) {
+    const last = stages[stages.length - 1];
+    if (last && last.stage === t.stage) last.topics.push(t);
+    else stages.push({ stage: t.stage, topics: [t] });
+  }
+  return stages;
 }
