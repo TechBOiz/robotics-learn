@@ -1,0 +1,99 @@
+---
+title: "Trajectory optimisation"
+summary: "A path says where to go; a trajectory says when. Time-parameterising a path within the robot's limits, and the optimisation methods that shape a whole motion at once to be smooth, fast and collision-free."
+category: planning
+order: 2
+level: advanced
+updated: 2026-10-05
+tags: [planning, trajectory-optimisation, time-parameterisation, collocation]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import VelocityProfile from '../../../figures/VelocityProfile.astro';
+import TrajOptIterations from '../../../figures/TrajOptIterations.astro';
+
+A [sampling-based planner](/planning/configuration-space-and-sampling/) returns a sequence of configurations: a **path**. It contains no notion of time. A robot needs a **trajectory** — a position for every instant, with velocities and accelerations its motors can deliver. Getting from one to the other, and getting a *good* one, is the subject of this article.
+
+## Giving a path a timetable
+
+The simplest case is a move along a known path between two stops. The motors impose a speed limit and an acceleration limit, and the fastest motion that respects both has three phases.
+
+<Figure number={1} caption="The trapezoidal profile. Position, velocity and acceleration for a single point-to-point move.">
+  <VelocityProfile />
+</Figure>
+
+This **trapezoidal velocity profile** is the workhorse of industrial motion control. If the move is too short to reach the speed limit, the cruise phase vanishes and the profile becomes a triangle.
+
+Its flaw is at the corners, where acceleration jumps instantaneously. The rate of change of acceleration is **jerk**, and infinite jerk excites vibration in the mechanism and whatever it is carrying. An **S-curve** profile limits jerk as well, ramping acceleration up and down. It is a little slower and noticeably smoother.
+
+For a multi-joint arm following a curved path, the same idea generalises. Write the path as $q(s)$ with $s$ running from 0 to 1. The joint torque limits then become limits on how fast $s$ may advance and accelerate at each point, and the time-optimal timetable drives along the edge of those limits. Efficient algorithms for this *time-optimal path parameterisation* are standard in arm software.
+
+## Optimising the whole motion
+
+Fixing the path first and timing it afterwards is convenient, and suboptimal: the best path depends on how fast you intend to travel along it. **Trajectory optimisation** chooses both together by posing the motion as one optimisation problem:
+
+$$
+\begin{aligned}
+\min_{x(\cdot),\,u(\cdot)} \quad & \int_0^T \ell\big(x(t),u(t)\big)\,dt \\
+\text{subject to}\quad & \dot x = f(x,u) && \text{dynamics} \\
+& x(0) = x_{\text{start}},\; x(T) = x_{\text{goal}} && \text{boundary conditions} \\
+& u_{\min}\le u \le u_{\max} && \text{actuator limits} \\
+& d(x) \ge d_{\text{safe}} && \text{clearance from obstacles}
+\end{aligned}
+$$
+
+The cost $\ell$ typically mixes effort, smoothness and duration.
+
+<Figure number={2} caption="Optimisation deforms an initial guess. It does not search; it descends.">
+  <TrajOptIterations />
+</Figure>
+
+<Callout title="Local, not global" tone="caution">
+Trajectory optimisation improves the guess it is given. It converges to a nearby local minimum, and which one depends on where it started. A straight line through an obstacle may be pushed out to the left or the right, or get stuck. A good initial guess — often from a sampling-based planner — matters as much as the solver.
+</Callout>
+
+## Turning it into numbers
+
+A trajectory is a function, and a computer optimises finite lists of numbers. The ways of converting one to the other define the main families of method.
+
+**Shooting.** The decision variables are the controls $u_0, \dots, u_{N-1}$ only. The states follow by simulating forward. It is simple and always physically consistent. But a small change to an early control changes everything after it, so the problem is badly conditioned for long horizons or unstable systems.
+
+**Direct collocation.** Both states and controls at a set of time points are decision variables, and the dynamics become constraints tying each point to the next. The trajectory need not be physically consistent until the solver converges, which lets the solver start from a rough guess of the *states* — a great practical advantage. The problem is larger but sparse, and sparse solvers handle it well.
+
+**Multiple shooting** sits between the two: simulate over short segments, and constrain the segments to join.
+
+**Differential dynamic programming** and its relative **iLQR** exploit the time structure directly. They sweep backward along the trajectory computing a local [LQR](/control/lqr-and-mpc/) controller, then forward applying it. The result is a trajectory *and* a feedback controller that stabilises it.
+
+## Collision avoidance as a cost
+
+Obstacles enter as a penalty or constraint on distance. That needs a function giving the distance from any point to the nearest obstacle, and its gradient, so the optimiser knows which way to move. A **signed distance field** precomputed from the [map](/state-estimation/slam/) provides exactly this.
+
+Well-known planners differ mainly in how they use it. CHOMP follows the gradient of a smoothness-plus-obstacle cost. TrajOpt treats collisions as constraints inside sequential convex optimisation. STOMP avoids gradients altogether by sampling noisy variations of the trajectory and combining the best.
+
+## Contact changes the problem
+
+For manipulation and locomotion, the dynamics change discontinuously when contact is made or broken. Two approaches:
+
+- **Fix the contact schedule.** Decide in advance which feet or fingers are in contact during each phase, and optimise the motion within those phases. The problem stays smooth. This is the basis of [convex MPC for legged robots](/control/lqr-and-mpc/).
+- **Optimise through contact.** Let the solver choose when and where contact occurs. This is far more general and far harder, because the problem is no longer smooth.
+
+## How it fits together
+
+Planning and control form a spectrum, separated mainly by how far ahead they look and how often they run.
+
+| Layer | Looks ahead | Runs at | Output |
+|---|---|---|---|
+| Task planning | Minutes | On demand | Sequence of actions |
+| Path planning | Whole motion | On demand | Collision-free path |
+| Trajectory optimisation | Whole motion | On demand, seconds | Timed, smooth trajectory |
+| Model-predictive control | About a second | Tens to hundreds of Hz | Next control input |
+| Joint control | — | Kilohertz | Motor torque |
+
+[MPC](/control/lqr-and-mpc/) is trajectory optimisation run repeatedly over a short horizon. The mathematics is the same; what changes is the time budget.
+
+## Sources
+
+1. Kelly, M. "An Introduction to Trajectory Optimization: How to Do Your Own Direct Collocation." *SIAM Review* 59(4), 2017.
+2. Tedrake, R. *Underactuated Robotics.* MIT course notes. [underactuated.mit.edu](https://underactuated.mit.edu/) — chapter on trajectory optimisation.
+3. Schulman, J. et al. "Motion planning with sequential convex optimization and convex collision checking." *International Journal of Robotics Research* 33(9), 2014.
+4. LaValle, S. M. *Planning Algorithms.* Cambridge University Press, 2006. [lavalle.pl/planning](https://lavalle.pl/planning/)

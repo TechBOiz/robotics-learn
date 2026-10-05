@@ -1,0 +1,31 @@
+---
+// Odometry drift around a loop, and the trajectory after loop closure.
+const true_ = [[0, 0], [4, 0], [4, 3], [0, 3], [0, 0]];
+// drifted estimate: small heading error accumulating per segment
+let h = 0, p = [0, 0]; const drift: number[][] = [[0, 0]];
+const segs = [[4, 0], [3, 90], [4, 180], [3, 270]];
+for (const [len, dir] of segs) { const n = 8; for (let i = 0; i < n; i++) { h += 0.011 * (len / n) * 4; const a = (dir * Math.PI) / 180 + h; p = [p[0] + (len / n) * Math.cos(a), p[1] + (len / n) * Math.sin(a)]; drift.push(p); } }
+const S = (ox: number) => ([x, y]: number[]) => `${(ox + x * 52).toFixed(1)},${(230 - y * 52).toFixed(1)}`;
+const L = S(60), R = S(410);
+const end = drift[drift.length - 1];
+---
+<svg class="fig" viewBox="0 0 700 304" role="img" aria-labelledby="lc-title lc-desc">
+  <title id="lc-title">Drift around a loop, before and after loop closure</title>
+  <desc id="lc-desc">Left: a robot drives a rectangular loop back to its start. Its odometry estimate bends gradually away from the true path, so the estimated end point misses the start by a wide margin. Right: when the robot recognises the starting place, that constraint is added and the whole trajectory is re-optimised, pulling the estimate back onto the true path.</desc>
+  <text x="170" y="22" text-anchor="middle" class="t-strong">Odometry only</text>
+  <polygon class="none wire-muted dash" points={true_.map(L).join(' ')} />
+  <polyline class="c3 thick" points={drift.map(L).join(' ')} />
+  <circle class="f2" cx="60" cy="230" r="7" /><text x="60" y="254" text-anchor="middle" class="t-small t-c2">start</text>
+  <circle class="f3" cx={60 + end[0] * 52} cy={230 - end[1] * 52} r="6" />
+  <text x={60 + end[0] * 52 + 12} y={230 - end[1] * 52 - 6} class="t-small t-c3">estimated end</text>
+  <line class="wire dash" x1="60" y1="230" x2={60 + end[0] * 52} y2={230 - end[1] * 52} />
+  <text x="170" y="296" text-anchor="middle" class="t-small t-muted">small errors accumulate without bound</text>
+
+  <line class="grid" x1="350" y1="50" x2="350" y2="270" />
+  <text x="520" y="22" text-anchor="middle" class="t-strong">After loop closure</text>
+  <polygon class="none wire-muted dash" points={true_.map(R).join(' ')} />
+  <polygon class="none c2 thick" points={true_.map(([x, y]) => [x + 0.04 * Math.sin(y * 2), y + 0.05 * Math.sin(x * 1.5)]).map(R).join(' ')} />
+  <circle class="f2" cx="410" cy="230" r="7" /><text x="410" y="254" text-anchor="middle" class="t-small t-c2">"I have been here before"</text>
+  <text x="520" y="296" text-anchor="middle" class="t-small t-muted">one recognition corrects the whole path</text>
+  <text x="350" y="40" text-anchor="middle" class="t-small t-muted">dashed: true path</text>
+</svg>

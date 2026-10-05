@@ -1,0 +1,16 @@
+---
+// The predict-update cycle.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 700 200" role="img" aria-labelledby="pu-title pu-desc">
+  <title id="pu-title">The predict–update cycle of a Bayes filter</title>
+  <desc id="pu-desc">Two steps alternate forever. Predict: use the motion model and the latest control input to move the estimate forward; uncertainty grows. Update: use a sensor measurement to correct the estimate; uncertainty shrinks.</desc>
+  <defs><ArrowDef id="ah-pu" /></defs>
+  <rect class="soft1 c1" stroke-width="1.4" x="90" y="60" width="210" height="80" rx="12" /><text x="195" y="90" text-anchor="middle" class="t-strong">Predict</text><text x="195" y="109" text-anchor="middle" class="t-small">apply the motion model</text><text x="195" y="126" text-anchor="middle" class="t-small t-c1">uncertainty grows</text>
+  <rect class="soft3 c3" stroke-width="1.4" x="400" y="60" width="210" height="80" rx="12" /><text x="505" y="90" text-anchor="middle" class="t-strong">Update</text><text x="505" y="109" text-anchor="middle" class="t-small">compare with a measurement</text><text x="505" y="126" text-anchor="middle" class="t-small t-c3">uncertainty shrinks</text>
+  <path class="wire" d="M300 84 H398" marker-end="url(#ah-pu)" /><path class="wire" d="M400 118 H302" marker-end="url(#ah-pu)" />
+  <text x="350" y="76" text-anchor="middle" class="t-small">prior</text><text x="350" y="136" text-anchor="middle" class="t-small">posterior</text>
+  <line class="wire-muted" x1="195" y1="20" x2="195" y2="58" marker-end="url(#ah-pu)" /><text x="195" y="14" text-anchor="middle" class="t-small t-muted">IMU, wheel or leg odometry — fast</text>
+  <line class="wire-muted" x1="505" y1="20" x2="505" y2="58" marker-end="url(#ah-pu)" /><text x="505" y="14" text-anchor="middle" class="t-small t-muted">camera, LiDAR, GPS — slower</text>
+  <text x="350" y="178" text-anchor="middle" class="t-small t-muted">Prediction usually runs many times between updates.</text>
+</svg>

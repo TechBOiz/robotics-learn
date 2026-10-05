@@ -1,0 +1,102 @@
+---
+title: "Configuration space and sampling-based planning"
+summary: "Motion planning becomes tractable once a robot is treated as a single point in the space of its joint angles. What that space looks like, why it cannot be mapped explicitly, and how PRM and RRT find paths through it by sampling."
+category: planning
+order: 1
+level: intermediate
+updated: 2026-10-05
+tags: [planning, configuration-space, rrt, prm, sampling]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import CSpace from '../../../figures/CSpace.astro';
+import Rrt from '../../../figures/Rrt.astro';
+
+"Move the arm from here to there without hitting anything" sounds simple and is one of the harder problems in robotics. The arm is a complicated shape, it bends in many places at once, and the obstacles are arbitrary. The idea that makes it manageable is a change of viewpoint.
+
+## Configuration space
+
+A **configuration** is a complete specification of where every part of the robot is. For an arm it is the vector of joint angles $q$. The set of all configurations is the **configuration space**, or C-space. Its dimension is the number of degrees of freedom.
+
+In C-space the robot is a single point. Obstacles become regions: the set of all configurations in which some part of the robot would intersect something.
+
+<Figure number={1} caption="The same planning problem in two spaces. The right-hand picture was computed by testing 3,600 joint-angle pairs for collision.">
+  <CSpace />
+</Figure>
+
+Three things are visible in Figure 1:
+
+- A simple obstacle in the workspace becomes a large, irregular region in C-space. There is no formula for its shape.
+- Start and goal may be near each other in the workspace and far apart in C-space, or the reverse.
+- Planning is now a clean question: find a continuous curve from one point to another through **free space**.
+
+## Why not just compute the free space?
+
+For two joints we can draw the picture. A typical arm has six or seven, and a humanoid has thirty or more. A grid with 100 values per joint has $100^7 = 10^{14}$ cells for a seven-joint arm. This is the *curse of dimensionality*, and it rules out any method that enumerates C-space.
+
+What we *can* do cheaply is answer a point query: **is this one configuration in collision?** Run [forward kinematics](/dynamics/kinematics-and-the-jacobian/), place the robot's geometry, and test it against the environment. Sampling-based planners are built entirely on that one operation.
+
+## Probabilistic roadmaps
+
+A **probabilistic roadmap** (PRM) builds a reusable graph of the free space:
+
+1. Sample many random configurations. Keep those that are collision-free.
+2. Try to connect each to its nearest neighbours with a straight segment in C-space. Keep the segment if every point checked along it is collision-free.
+3. To answer a query, connect the start and goal to the graph and run a shortest-path search.
+
+Building the roadmap is expensive; each query afterwards is fast. PRM suits a fixed environment with many queries, such as a robot cell whose layout never changes.
+
+## Rapidly-exploring random trees
+
+A **rapidly-exploring random tree** (RRT) answers a single query by growing a tree from the start:
+
+1. Sample a random configuration $q_{\text{rand}}$.
+2. Find the tree node nearest to it, $q_{\text{near}}$.
+3. Take a short step from $q_{\text{near}}$ toward $q_{\text{rand}}$. If that step is collision-free, add the new node.
+4. Repeat until a node lands near the goal.
+
+<Figure number={2} caption="An RRT in two dimensions. The same algorithm runs unchanged in seven or thirty.">
+  <Rrt />
+</Figure>
+
+The tree spreads quickly because a random sample is most likely to fall in a large unexplored region, and so is most likely to be nearest to a node on the frontier. The tree is pulled outward toward the unexplored space without ever being told where that is.
+
+Common refinements:
+
+- **Goal bias.** Sample the goal itself a small fraction of the time.
+- **RRT-Connect.** Grow two trees, one from each end, and try to join them. Usually much faster.
+- **RRT\*.** After adding a node, rewire nearby nodes through it if that shortens their path. The tree then improves the longer it runs.
+
+## What the guarantees mean
+
+Sampling-based planners give weaker promises than a grid search, and it is worth being exact about them.
+
+- **Probabilistic completeness.** If a path exists, the probability of finding it approaches one as the number of samples grows. With finite time, failure does not prove that no path exists.
+- **Asymptotic optimality.** Plain RRT and PRM find *a* path, usually a poor one. Variants such as RRT\* and PRM\* [converge to the shortest path](https://arxiv.org/abs/1105.1186) as samples increase. Plain RRT provably does not.
+
+<Callout title="Narrow passages">
+Sampling finds wide-open regions easily and thin gaps rarely. Reaching into a shelf, threading through a doorway, or a tight insertion each corresponds to a narrow corridor in C-space that random samples seldom hit. This is the classic weakness of these methods, and where planning times become unpredictable.
+</Callout>
+
+## From a path to a motion
+
+The raw output is a jagged sequence of configurations, as Figure 2 shows. Before a robot can execute it:
+
+1. **Shortcut.** Repeatedly pick two points on the path and replace the section between them with a straight segment, if that segment is collision-free.
+2. **Smooth.** Fit a curve through the result.
+3. **Time-parameterise.** Assign velocities and accelerations within the robot's limits. See [trajectory optimisation](/planning/trajectory-optimisation/).
+
+## In practice
+
+- **Collision checking dominates the run time.** Robots are approximated by simple shapes — spheres, capsules, convex hulls — and environments are stored in structures that reject distant geometry cheaply.
+- **Distance needs a definition.** "Nearest" in C-space mixes joints of different kinds and sizes. A weighted metric is normally used.
+- **Constraints complicate sampling.** Keeping a cup upright restricts valid configurations to a thin surface in C-space, which random samples never land on exactly. Planners project samples onto it.
+- **Libraries exist.** The [Open Motion Planning Library](https://ompl.kavrakilab.org/) implements these algorithms and many variants, and is what MoveIt uses underneath.
+
+Sampling-based planning excels at finding *some* feasible path through cluttered, high-dimensional space with no initial guess. It is weaker at producing smooth, efficient, dynamically aware motion. That is the strength of optimisation, and the two are commonly chained: sample to find a path, then optimise it.
+
+## Sources
+
+1. LaValle, S. M. *Planning Algorithms.* Cambridge University Press, 2006. Free online: [lavalle.pl/planning](https://lavalle.pl/planning/)
+2. Karaman, S. and Frazzoli, E. "Sampling-based Algorithms for Optimal Motion Planning." *International Journal of Robotics Research* 30(7), 2011. [arXiv:1105.1186](https://arxiv.org/abs/1105.1186)
+3. Şucan, I. A., Moll, M. and Kavraki, L. E. "The Open Motion Planning Library." *IEEE Robotics &amp; Automation Magazine* 19(4), 2012. [ompl.kavrakilab.org](https://ompl.kavrakilab.org/)

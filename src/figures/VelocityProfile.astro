@@ -1,0 +1,21 @@
+---
+// Trapezoidal velocity profile: position, velocity and acceleration against time.
+const X = (t: number) => 90 + (t / 4) * 540;
+const ta = 1, T = 4, vmax = 1; // accelerate 1 s, cruise 2 s, decelerate 1 s
+const v = (t: number) => (t < ta ? t / ta : t > T - ta ? (T - t) / ta : 1) * vmax;
+const p = (t: number) => (t < ta ? 0.5 * t * t : t > T - ta ? 3 - 0.5 * (T - t) ** 2 : 0.5 + (t - ta));
+const ts = Array.from({ length: 81 }, (_, i) => i * 0.05);
+const pos = ts.map((t) => `${X(t).toFixed(1)},${(94 - (p(t) / 3) * 64).toFixed(1)}`).join(' ');
+const vel = ts.map((t) => `${X(t).toFixed(1)},${(190 - v(t) * 56).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 700 316" role="img" aria-labelledby="vp-title vp-desc">
+  <title id="vp-title">A trapezoidal velocity profile</title>
+  <desc id="vp-desc">Three stacked plots against time. Acceleration is a positive constant, then zero, then a negative constant. Velocity therefore ramps up, holds at its limit, and ramps down, forming a trapezoid. Position follows a smooth S-shaped curve from start to goal.</desc>
+  <rect class="soft1" x={X(0)} y="20" width={X(1) - X(0)} height="270" /><rect class="soft3" x={X(3)} y="20" width={X(4) - X(3)} height="270" />
+  <text x={X(0.5)} y="14" text-anchor="middle" class="t-small t-strong">accelerate</text><text x={X(2)} y="14" text-anchor="middle" class="t-small t-strong">cruise at the speed limit</text><text x={X(3.5)} y="14" text-anchor="middle" class="t-small t-strong">decelerate</text>
+  <line class="axis" x1="90" y1="94" x2="630" y2="94" /><polyline class="c2 thick" points={pos} /><text x="80" y="64" text-anchor="end" class="t-small t-c2">position</text>
+  <line class="axis" x1="90" y1="190" x2="630" y2="190" /><polyline class="c1 thick" points={vel} /><text x="80" y="164" text-anchor="end" class="t-small t-c1">velocity</text>
+  <line class="axis" x1="90" y1="258" x2="630" y2="258" />
+  <path class="c3 thick" d={`M${X(0)} 258 V232 H${X(1)} V258 H${X(3)} V284 H${X(4)} V258`} /><text x="80" y="250" text-anchor="end" class="t-small t-c3">acceleration</text>
+  <text x="360" y="308" text-anchor="middle" class="t-small t-muted">The simplest profile that respects both a speed limit and an acceleration limit. Acceleration jumps instantly, which excites vibration.</text>
+</svg>

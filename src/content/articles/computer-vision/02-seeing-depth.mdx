@@ -1,0 +1,102 @@
+---
+title: "Seeing depth: stereo, structured light, time of flight and LiDAR"
+summary: "A single image has no depth. Four families of sensor recover it, each by a different physical trick, and each fails in its own characteristic way. How they work and how to choose."
+category: computer-vision
+order: 2
+level: intermediate
+updated: 2026-10-05
+tags: [computer-vision, depth, stereo, lidar, time-of-flight]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import StereoDepth from '../../../figures/StereoDepth.astro';
+
+[Projection throws depth away](/computer-vision/camera-models-and-calibration/). To grasp an object or avoid a wall, a robot needs it back. Every depth sensor does one of two things: it looks from two places and triangulates, or it sends light out and times its return.
+
+## Triangulation: stereo
+
+Two cameras a known distance apart see the same point at slightly different image positions. That shift is the **disparity** $d$, and for cameras with focal length $f$ (in pixels) separated by baseline $b$:
+
+$$
+Z = \frac{f\,b}{d}
+$$
+
+<Figure number={1} caption="Stereo triangulation, and why its accuracy falls off with distance.">
+  <StereoDepth />
+</Figure>
+
+The hard part is **matching**: for each pixel in the left image, finding the same scene point in the right. After calibration and rectification the search is along a single image row, but it still fails wherever the surface has no distinguishing texture — a blank wall, a polished floor.
+
+Differentiating the depth equation gives the error for a matching error of $\Delta d$ pixels:
+
+$$
+\Delta Z = \frac{Z^2}{f\,b}\,\Delta d
+$$
+
+<Callout title="Stereo error grows with the square of distance">
+Double the range and the depth error quadruples. A wider baseline or a longer focal length helps in direct proportion — but a wide baseline makes the sensor large and creates a blind zone up close, where the two views no longer overlap.
+</Callout>
+
+**Active stereo** adds an infrared projector that paints a random dot pattern on the scene. The cameras then have texture to match even on blank surfaces. This is how most depth cameras sold for robotics work.
+
+**Structured light** replaces one camera with the projector. It projects a *known* pattern and triangulates between projector and camera. Accuracy at close range is excellent, which suits bin picking and inspection. It is usually slower and is easily washed out by sunlight.
+
+## Timing: time of flight
+
+Light travels 30 cm in a nanosecond. Send a pulse, time its return, and distance is
+
+$$
+Z = \frac{c\,\Delta t}{2}
+$$
+
+**Indirect time-of-flight** cameras avoid needing picosecond timing. They flood the scene with light whose brightness is modulated at tens of megahertz, and each pixel measures the *phase shift* of the returning signal. This yields a full depth image at video rate from a compact sensor. Two characteristic problems:
+
+- **Range ambiguity.** Phase wraps around, so a surface beyond the unambiguous range appears close. Using two modulation frequencies resolves it.
+- **Multipath.** Light that bounces off a second surface before returning takes a longer route and corrupts the reading. Inside corners appear rounded.
+
+**LiDAR** measures direct time of flight with a narrow laser beam, one direction at a time, and steers the beam — with a spinning head, a scanning mirror or a solid-state array. It gives long range, centimetre-level accuracy that barely degrades with distance, and it works in sunlight and darkness alike. The costs are price, sparse sampling (the gaps between beams grow with distance), and a point cloud that is skewed if the robot moves during a sweep and that motion is not compensated.
+
+## Comparison
+
+Typical characteristics; individual products vary widely.
+
+| | Passive stereo | Active stereo | Structured light | Indirect ToF | LiDAR |
+|---|---|---|---|---|---|
+| **Principle** | Triangulation | Triangulation | Triangulation | Phase timing | Pulse timing |
+| **Useful range** | Set by baseline | ~0.3–10 m | ~0.2–3 m | ~0.2–5 m | to 100 m and beyond |
+| **Error with distance** | Grows as $Z^2$ | Grows as $Z^2$ | Grows as $Z^2$ | Roughly constant | Roughly constant |
+| **Textureless surfaces** | Fails | Works | Works | Works | Works |
+| **Outdoor sunlight** | Works | Pattern washes out; falls back to passive | Poor | Poor to fair | Works |
+| **Density** | Full image | Full image | Full image | Full image | Sparse |
+| **Relative cost** | Low | Low | Medium | Low–medium | High |
+
+## What defeats every depth sensor
+
+All of these methods assume light leaves a surface the way matte paint would reflect it.
+
+- **Shiny metal and mirrors** reflect light away from the sensor, or show a reflection of something else.
+- **Glass and clear plastic** are seen through, or produce depth for whatever is behind them.
+- **Very dark surfaces** return too little light.
+- **Thin structures** — wires, chair legs, mesh — fall between samples.
+- **Depth edges** produce "flying pixels" that mix foreground and background.
+
+A robot that works in kitchens, labs or factories meets all of these daily. This is why depth is usually treated as one input among several, and why manipulation systems increasingly back it up with touch.
+
+## Depth from one camera
+
+Neural networks can now estimate depth from a single image, using learned cues such as perspective, object size and shading. The results are dense and visually convincing, and they do not fail on textureless or reflective surfaces in the way triangulation does.
+
+Two cautions apply. A single image fixes depth only up to scale unless the camera's intrinsics and some known size are available, so many models output relative, not metric, depth. And accuracy is not guaranteed in the way it is for a time-of-flight measurement: the model is producing a plausible answer from experience. It is a strong complement to a physical depth sensor, and a risky replacement for one where collisions matter.
+
+## Choosing
+
+- **Tabletop manipulation, indoors:** active stereo or structured light at close range, possibly with a wrist camera.
+- **Mobile robot indoors:** active stereo or ToF for obstacles; a 2D or 3D LiDAR for mapping.
+- **Outdoors, or long range:** LiDAR, with passive stereo as a low-cost complement.
+- **Fast motion:** global-shutter sensors, short exposures, and careful time synchronisation with the IMU.
+
+## Sources
+
+1. Hartley, R. and Zisserman, A. *Multiple View Geometry in Computer Vision*, 2nd edition. Cambridge University Press, 2004. Chapters on two-view geometry.
+2. Szeliski, R. *Computer Vision: Algorithms and Applications*, 2nd edition. Springer, 2022. Free online: [szeliski.org/Book](https://szeliski.org/Book/)
+3. Hansard, M., Lee, S., Choi, O. and Horaud, R. *Time-of-Flight Cameras: Principles, Methods and Applications.* Springer, 2013.

@@ -1,0 +1,31 @@
+---
+// A rapidly-exploring random tree, grown with a fixed seed so the figure is reproducible.
+let seed = 7; const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+const W = 620, H = 250, obs = [{ x: 200, y: 0, w: 46, h: 160 }, { x: 380, y: 90, w: 46, h: 160 }];
+const inObs = (x: number, y: number) => obs.some((o) => x > o.x - 4 && x < o.x + o.w + 4 && y > o.y - 4 && y < o.y + o.h + 4);
+const clear = (a: number[], b: number[]) => { for (let t = 0; t <= 1; t += 0.1) if (inObs(a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]))) return false; return true; };
+const nodes: { p: number[]; parent: number }[] = [{ p: [40, 200], parent: -1 }]; const goal = [580, 50], step = 26; let goalIdx = -1;
+for (let it = 0; it < 900 && goalIdx < 0; it++) {
+  const s = rnd() < 0.08 ? goal : [rnd() * W, rnd() * H];
+  let best = 0, bd = 1e9; nodes.forEach((n, i) => { const d = Math.hypot(n.p[0] - s[0], n.p[1] - s[1]); if (d < bd) { bd = d; best = i; } });
+  const n = nodes[best].p, d = Math.min(step, bd); if (bd < 1) continue;
+  const q = [n[0] + ((s[0] - n[0]) / bd) * d, n[1] + ((s[1] - n[1]) / bd) * d];
+  if (q[0] < 4 || q[0] > W - 4 || q[1] < 4 || q[1] > H - 4 || !clear(n, q)) continue;
+  nodes.push({ p: q, parent: best });
+  if (Math.hypot(q[0] - goal[0], q[1] - goal[1]) < step && clear(q, goal)) { nodes.push({ p: goal, parent: nodes.length - 1 }); goalIdx = nodes.length - 1; }
+}
+const path: number[][] = []; for (let i = goalIdx; i >= 0; i = nodes[i].parent) path.push(nodes[i].p);
+const ox = 40, oy = 20;
+---
+<svg class="fig" viewBox="0 0 700 316" role="img" aria-labelledby="rr-title rr-desc">
+  <title id="rr-title">A rapidly-exploring random tree finding a path</title>
+  <desc id="rr-desc">A tree of short branches grows outward from the start point, spreading through the free space around two wall-like obstacles. One branch reaches the goal. The path from start to goal along the tree is highlighted; it is valid but jagged and longer than necessary.</desc>
+  <rect class="surface axis" x={ox} y={oy} width={W} height={H} />
+  {obs.map((o) => <rect class="ink-fill" opacity="0.3" x={ox + o.x} y={oy + o.y} width={o.w} height={o.h} />)}
+  {nodes.slice(1).map((n) => <line class="c1" stroke-width="1.2" opacity="0.75" x1={ox + nodes[n.parent].p[0]} y1={oy + nodes[n.parent].p[1]} x2={ox + n.p[0]} y2={oy + n.p[1]} />)}
+  <polyline class="c3" fill="none" stroke-width="3.4" stroke-linejoin="round" points={path.map((p) => `${(ox + p[0]).toFixed(1)},${(oy + p[1]).toFixed(1)}`).join(' ')} />
+  <circle class="f2" cx={ox + 40} cy={oy + 200} r="7" /><text x={ox + 40} y={oy + 226} text-anchor="middle" class="t-small t-strong t-c2">start</text>
+  <circle class="f3" cx={ox + goal[0]} cy={oy + goal[1]} r="7" /><text x={ox + goal[0]} y={oy + goal[1] - 14} text-anchor="middle" class="t-small t-strong t-c3">goal</text>
+  <text x="350" y="292" text-anchor="middle" class="t-small"><tspan class="t-c1">blue</tspan>: the tree ({nodes.length} nodes) · <tspan class="t-c3">orange</tspan>: the path found · grey: obstacles</text>
+  <text x="350" y="310" text-anchor="middle" class="t-small t-muted">Each branch grows toward a random sample. Most of the tree is discarded exploration.</text>
+</svg>

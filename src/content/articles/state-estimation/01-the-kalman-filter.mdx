@@ -1,0 +1,127 @@
+---
+title: "The Kalman filter"
+summary: "Every sensor is noisy and every model is wrong. The Kalman filter combines the two so that the result is better than either. The idea in one dimension, the full equations, and what the tuning matrices really mean."
+category: state-estimation
+order: 1
+level: intermediate
+updated: 2026-10-05
+tags: [state-estimation, kalman-filter, sensor-fusion, ekf]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import PredictUpdate from '../../../figures/PredictUpdate.astro';
+import KalmanStep from '../../../figures/KalmanStep.astro';
+
+A robot never knows its state. It has a model that predicts roughly what should happen, and sensors that report roughly what did. **State estimation** is the discipline of combining them, and the **Kalman filter** is its central tool. Sixty years after it was introduced, it or one of its descendants runs inside nearly every robot, drone and phone.
+
+## Carry a belief, not a number
+
+The key move is to stop tracking a single best guess and instead track a **probability distribution**: a best guess together with how uncertain it is. The Kalman filter uses the simplest useful distribution, a Gaussian, described completely by a mean $\hat x$ and a covariance $P$.
+
+Two operations then alternate.
+
+<Figure number={1} caption="The cycle shared by every Bayes filter.">
+  <PredictUpdate />
+</Figure>
+
+## One dimension
+
+Suppose we track a single quantity — a position along a line.
+
+**Predict.** We believe the position is $\hat x$ with variance $P$. The robot is commanded to move by $u$, and that motion is itself uncertain, with variance $Q$:
+
+$$
+\hat x^- = \hat x + u \qquad P^- = P + Q
+$$
+
+The estimate shifts and its variance grows. Moving without looking always makes you less sure.
+
+**Update.** A sensor now reports position $z$, with noise variance $R$. Combine the two, weighting each by its confidence:
+
+$$
+K = \frac{P^-}{P^- + R}
+\qquad
+\hat x = \hat x^- + K\,(z - \hat x^-)
+\qquad
+P = (1 - K)\,P^-
+$$
+
+<Figure number={2} caption="An update. The result is a weighted average of prediction and measurement, and is more certain than either.">
+  <KalmanStep />
+</Figure>
+
+Everything about the filter can be read from the **Kalman gain** $K$:
+
+- If the sensor is poor ($R$ large), $K \to 0$: ignore the measurement and keep the prediction.
+- If the prediction is poor ($P^-$ large), $K \to 1$: jump to the measurement.
+- In between, it is a weighted average, with weights set by the two variances.
+
+And $P$ always shrinks in an update. Any measurement, however noisy, adds information.
+
+## The general form
+
+For a state vector $x$ with linear dynamics and linear measurements,
+
+$$
+x_k = A\,x_{k-1} + B\,u_k + w_k
+\qquad
+z_k = H\,x_k + v_k
+$$
+
+where $w$ and $v$ are noise with covariances $Q$ and $R$, the same two steps become:
+
+$$
+\begin{aligned}
+\textbf{Predict:}\quad & \hat x^- = A\,\hat x + B\,u \\
+& P^- = A\,P\,A^{\mathsf T} + Q \\[4pt]
+\textbf{Update:}\quad & K = P^- H^{\mathsf T}\,(H\,P^- H^{\mathsf T} + R)^{-1} \\
+& \hat x = \hat x^- + K\,(z - H\,\hat x^-) \\
+& P = (I - K\,H)\,P^-
+\end{aligned}
+$$
+
+The term $z - H\hat x^-$ is the **innovation**: the part of the measurement the filter did not predict.
+
+<Callout title="It estimates things it cannot measure">
+The matrix $H$ may observe only part of the state. Measure position alone, and the filter still estimates velocity — because the dynamics $A$ link them, and the covariance $P$ records that link. This is how an [IMU bias](/sensors/inertial-measurement-units/) gets estimated from occasional position fixes, with no sensor ever measuring bias.
+</Callout>
+
+## Tuning: what Q and R mean
+
+The filter is optimal only if $Q$ and $R$ are right, and in practice they are the tuning knobs.
+
+- **$R$, measurement noise**, can often be measured: hold the robot still and compute the variance of the sensor's output.
+- **$Q$, process noise**, represents everything the model leaves out — unmodelled forces, slip, discretisation. It is rarely known and is usually tuned.
+
+What matters is their ratio. Raise $Q$ relative to $R$ and the filter trusts sensors more: it responds quickly and passes through more noise. Lower it and the filter trusts the model more: smooth, but slow to notice real change.
+
+A useful check is the innovation itself. If the filter is well tuned, innovations should be zero-mean, uncorrelated over time, and of the size the filter expects. Innovations that are consistently larger mean the filter is overconfident.
+
+## Nonlinear systems
+
+Real robots are nonlinear: rotations, [camera projection](/computer-vision/camera-models-and-calibration/), range measurements. Three extensions handle that.
+
+| Filter | Idea | Trade-off |
+|---|---|---|
+| **Extended (EKF)** | Linearise the model about the current estimate at every step | Cheap and standard; can diverge if the estimate is far off or the nonlinearity is strong |
+| **Unscented (UKF)** | Push a small set of sample points through the true nonlinear model | No derivatives needed; often more accurate; a little more computation |
+| **Particle filter** | Represent the belief with many random samples | Handles any distribution, including several hypotheses at once; cost grows quickly with state dimension |
+
+Orientation needs particular care. Rotations do not add like vectors, so a filter cannot simply average two [quaternions](/dynamics/frames-and-transforms/). The standard remedy is an **error-state** filter: keep the full orientation as a quaternion, and let the filter estimate only a small three-parameter correction to it.
+
+## Where it breaks
+
+- **Outliers.** A Gaussian has thin tails, so one wildly wrong measurement pulls the estimate hard. Real systems reject measurements whose innovation is implausibly large before using them.
+- **Overconfidence.** If $P$ becomes too small the filter stops listening to its sensors. Linearisation error in an EKF pushes it in exactly this direction.
+- **Unobservable states.** Some quantities cannot be inferred from the available sensors — [yaw from an IMU alone](/sensors/inertial-measurement-units/), for example. The filter will still produce a number, with a covariance that grows without bound. Check the covariance, not just the estimate.
+- **Wrong timing.** The filter assumes each measurement describes the present. A delayed measurement applied as if it were current is a systematic error.
+
+## What comes next
+
+A filter keeps only the latest state and discards history. That is efficient, but once it linearises around a wrong estimate, the mistake is baked in. The alternative is to keep past states and re-optimise them all as new data arrives. That is **smoothing**, and it is the basis of modern [SLAM](/state-estimation/slam/).
+
+## Sources
+
+1. Barfoot, T. D. *State Estimation for Robotics.* Cambridge University Press, 2017. Free copy from the author: [asrl.utias.utoronto.ca](https://asrl.utias.utoronto.ca/~tdb/bib/barfoot_ser17.pdf)
+2. Thrun, S., Burgard, W. and Fox, D. *Probabilistic Robotics.* MIT Press, 2005.
+3. Kalman, R. E. "A New Approach to Linear Filtering and Prediction Problems." *Journal of Basic Engineering* 82(1), 1960.

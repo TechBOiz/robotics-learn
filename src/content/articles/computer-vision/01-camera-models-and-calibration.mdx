@@ -1,0 +1,122 @@
+---
+title: "Camera models and calibration"
+summary: "A camera turns the 3D world into a grid of numbers, and loses depth in the process. The pinhole model, the intrinsic matrix, lens distortion, and how calibration ties pixels to the robot's own coordinate frames."
+category: computer-vision
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [computer-vision, camera, calibration, intrinsics, hand-eye]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import Pinhole from '../../../figures/Pinhole.astro';
+
+Before a robot can use an image to act, it must answer a geometric question: *which direction in space does this pixel correspond to?* A learned policy may absorb the answer implicitly, but any system that measures, grasps or localises with a camera needs it explicitly. That answer is the **camera model**, and finding its parameters is **calibration**.
+
+## The pinhole model
+
+<Figure number={1} caption="The pinhole model. The image plane is drawn in front of the optical centre, which is mathematically equivalent to the real sensor behind it and avoids an upside-down image.">
+  <Pinhole />
+</Figure>
+
+Take a point at $(X, Y, Z)$ in the camera's own frame, with $Z$ pointing out along the optical axis. By similar triangles it lands at pixel
+
+$$
+u = f_x\,\frac{X}{Z} + c_x \qquad v = f_y\,\frac{Y}{Z} + c_y
+$$
+
+Four numbers describe an ideal camera:
+
+- $f_x, f_y$ — the focal length, measured in pixels. A longer focal length magnifies and narrows the view.
+- $c_x, c_y$ — the *principal point*, where the optical axis meets the image. It is near the image centre, but not exactly at it.
+
+They are collected in the **intrinsic matrix**:
+
+$$
+K = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}
+\qquad
+Z\begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = K \begin{bmatrix} X \\ Y \\ Z \end{bmatrix}
+$$
+
+<Callout title="Division by Z is the whole problem">
+Projection divides by depth, so every point along a ray lands on the same pixel. A small object nearby and a large one far away look identical. Going backwards, a pixel gives a *direction*, not a position. Recovering the missing depth is what [stereo, structured light and LiDAR](/computer-vision/seeing-depth/) are for.
+</Callout>
+
+### Field of view
+
+The horizontal field of view follows from focal length and image width $w$:
+
+$$
+\text{FoV} = 2\arctan\!\left(\frac{w}{2 f_x}\right)
+$$
+
+A wide lens sees more of the scene and makes tracking through fast motion easier. A narrow lens puts more pixels on each object, which improves measurement accuracy at a distance. Robots often carry both.
+
+## Lens distortion
+
+Real lenses bend straight lines, most strongly toward the image edges. The standard correction models **radial** distortion as a polynomial in the distance $r$ from the image centre:
+
+$$
+x_{\text{distorted}} = x\,(1 + k_1 r^2 + k_2 r^4 + k_3 r^6)
+$$
+
+plus a smaller **tangential** term for a lens that is not perfectly parallel to the sensor. Here $x$ is the ideal coordinate before multiplying by $K$.
+
+Once the coefficients are known, an image can be *undistorted* so that the pinhole equations hold. Very wide and fisheye lenses need a different model, because the polynomial breaks down beyond about 120° of view.
+
+## Extrinsics: where the camera is
+
+Intrinsics describe the camera itself. **Extrinsics** are the [rigid transform](/dynamics/frames-and-transforms/) from some other frame to the camera frame:
+
+$$
+{}^{C}p = {}^{C}T_{W}\;{}^{W}p
+$$
+
+Putting it together, a point in the world reaches a pixel by: transform into the camera frame, divide by depth, distort, apply $K$.
+
+## Calibrating intrinsics
+
+The usual method, due to [Zhang](https://doi.org/10.1109/34.888718), needs only a flat printed pattern:
+
+1. Show the camera a checkerboard of known square size from fifteen or more different angles and distances.
+2. Detect the corners in each image, to sub-pixel precision.
+3. Solve for the intrinsics, distortion coefficients and the board's pose in every image, by minimising **reprojection error** — the distance between where the model says each corner should appear and where it was detected.
+
+Practical points:
+
+- **Cover the whole image**, especially the corners. Distortion is only observable where there is data.
+- **Tilt the board.** Images taken square-on cannot separate focal length from distance.
+- **Check the result.** An RMS reprojection error of a few tenths of a pixel is typical of a good calibration. A low error on a poor set of images still gives a poor calibration.
+- **Recalibrate after changing focus or zoom.** Both alter the intrinsics.
+
+Libraries such as [OpenCV](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html) implement the whole procedure.
+
+## Hand–eye calibration
+
+For a robot, the transform that matters is between the camera and the robot's own frames. There are two arrangements:
+
+- **Eye-in-hand:** the camera rides on the wrist. Unknown: camera relative to the tool flange.
+- **Eye-to-hand:** the camera is fixed in the workcell. Unknown: camera relative to the robot base.
+
+Both are found the same way. Move the arm through a series of poses while the camera views a fixed target (or a target on the arm). Each pair of poses gives one equation of the form
+
+$$
+A\,X = X\,B
+$$
+
+where $A$ is the arm's motion from its encoders, $B$ is the camera's motion from the target, and $X$ is the unknown mounting transform. Enough varied poses — with rotations about at least two different axes — determine $X$.
+
+Hand–eye error is usually the largest term in a vision-guided robot's accuracy budget. A one-degree error in camera orientation is a 17 mm error at one metre.
+
+## Things the pinhole model leaves out
+
+- **Rolling shutter.** Most low-cost sensors expose one row at a time. During fast motion each row is captured from a slightly different pose, which skews the image. Global-shutter sensors expose all rows together and are preferred on fast-moving robots.
+- **Motion blur.** Exposure time trades brightness against sharpness. Short exposures need good lighting.
+- **Timing.** An image is only useful if you know *when* it was taken relative to the joint encoders and the [IMU](/sensors/inertial-measurement-units/). A 20 ms error at 1 m/s is 20 mm.
+- **Depth of field and focus.** Close-range manipulation may push objects out of focus.
+
+## Sources
+
+1. Zhang, Z. "A flexible new technique for camera calibration." *IEEE Transactions on Pattern Analysis and Machine Intelligence* 22(11), 2000. [doi:10.1109/34.888718](https://doi.org/10.1109/34.888718)
+2. OpenCV. "Camera Calibration" tutorial. [docs.opencv.org](https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html)
+3. Hartley, R. and Zisserman, A. *Multiple View Geometry in Computer Vision*, 2nd edition. Cambridge University Press, 2004.

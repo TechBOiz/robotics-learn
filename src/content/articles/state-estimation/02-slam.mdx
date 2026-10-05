@@ -1,0 +1,108 @@
+---
+title: "SLAM: mapping a place while finding yourself in it"
+summary: "To localise you need a map; to build a map you need to know where you are. How simultaneous localisation and mapping breaks that circle, why loop closure matters so much, and how the problem is structured today."
+category: state-estimation
+order: 2
+level: intermediate
+updated: 2026-10-05
+tags: [state-estimation, slam, odometry, factor-graph, loop-closure]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import LoopClosure from '../../../figures/LoopClosure.astro';
+import FactorGraph from '../../../figures/FactorGraph.astro';
+
+A robot entering an unknown building faces a circular problem. To place what its sensors see on a map, it must know its own position. To know its position, it must recognise where it is on a map. **Simultaneous localisation and mapping** (SLAM) solves both together, by treating the robot's whole trajectory and the map as one joint estimation problem.
+
+## Odometry drifts
+
+The simplest way to track position is **odometry**: add up small motions.
+
+- **Wheel odometry** counts wheel rotation. It fails when wheels slip.
+- **Leg odometry** uses joint encoders and the assumption that a planted foot does not move. It fails when feet slip or the ground gives way.
+- **Visual odometry** tracks how image features move between frames.
+- **LiDAR odometry** aligns each scan to the previous one.
+- **Inertial odometry** integrates the [IMU](/sensors/inertial-measurement-units/), and drifts within seconds on its own.
+
+All share one flaw. Each step has a small error, and the errors add. Position uncertainty grows without limit, and a small heading error is the worst kind, because it turns all later forward motion into sideways error.
+
+<Figure number={1} caption="Odometry alone, and the same trajectory after one loop closure.">
+  <LoopClosure />
+</Figure>
+
+## Loop closure
+
+The cure for drift is recognising a place you have already been. That single observation says: *these two points on my trajectory, far apart in time, are the same point in space.* The accumulated error around the whole loop is then known and can be distributed back along the path.
+
+<Callout title="Odometry is local; loop closure is global">
+Odometry gives a smooth, accurate path over short distances and drifts over long ones. Loop closures are rare, but each one bounds the error of everything inside the loop. A SLAM system needs both.
+</Callout>
+
+Loop closure is also where SLAM is most dangerous. A *false* match — two different corridors that look alike — ties together places that are far apart and can wreck the map. Systems therefore verify candidate matches geometrically and use robust cost functions that let a bad constraint be down-weighted.
+
+## The problem as a graph
+
+Modern SLAM is formulated as a **factor graph**.
+
+<Figure number={2} caption="A small SLAM problem. Real graphs have thousands of poses and far more landmarks.">
+  <FactorGraph />
+</Figure>
+
+- **Variables** are the unknowns: robot poses at chosen moments, and positions of landmarks.
+- **Factors** are measurements. Each relates a few variables and states how far their current values are from what was measured.
+
+Solving SLAM means finding the variable values that minimise the total disagreement:
+
+$$
+\hat X = \arg\min_X \sum_i \big\lVert\, h_i(X_i) - z_i \,\big\rVert^2_{\Sigma_i}
+$$
+
+Each term is one factor: the predicted measurement $h_i$ minus the actual measurement $z_i$, weighted by that measurement's uncertainty $\Sigma_i$. This is nonlinear least squares, solved by repeated linearisation.
+
+What makes it tractable is **sparsity**. Each factor touches only two or three variables, so the linear systems involved are mostly zeros and can be solved quickly even for very large graphs. Incremental solvers update the solution as each new measurement arrives without starting again, which is what allows this to run in real time.
+
+### Filtering versus smoothing
+
+Early SLAM used an [extended Kalman filter](/state-estimation/the-kalman-filter/) with the robot pose and every landmark in one large state. A filter keeps only the current pose and folds all history into a covariance matrix, which becomes dense and expensive, and it cannot revisit an earlier linearisation that turned out to be poor.
+
+Graph-based **smoothing** keeps past poses as variables and re-linearises them when better information arrives. For the same computation it is generally more accurate, and it is now the standard approach.
+
+## Front end and back end
+
+A SLAM system splits into two parts.
+
+**The front end** turns raw sensor data into factors. It extracts and tracks features, aligns scans, decides which frames are worth keeping as *keyframes*, and proposes loop closures by comparing the current view against a database of past ones. It is sensor-specific and is where most engineering effort goes.
+
+**The back end** is the optimiser. It takes factors and returns the best trajectory and map. It is largely sensor-agnostic; libraries such as [GTSAM](https://gtsam.org/) provide it.
+
+## Common configurations
+
+| System | Sensors | Strengths | Weaknesses |
+|---|---|---|---|
+| **Visual SLAM** | One or more cameras | Cheap, light, rich information for recognising places | Struggles with low light, blur and blank surfaces; one camera alone cannot determine scale |
+| **Visual–inertial** | Camera + IMU | IMU bridges fast motion and fixes scale; very robust for its cost | Needs accurate calibration and time synchronisation |
+| **LiDAR SLAM** | LiDAR, usually + IMU | Direct, accurate geometry; indifferent to lighting | Cost; weak in long featureless corridors and open fields |
+| **Legged** | IMU + joint encoders, often + camera or LiDAR | Works with no external features at all, at high rate | Drifts with foot slip unless corrected |
+
+The IMU appears in almost every row. It is the one sensor that keeps working through the brief moments when the others fail.
+
+## What a map is
+
+"Map" means different things depending on what will use it.
+
+- **Sparse landmark maps** — a set of 3D points. Sufficient for localisation, useless for avoiding obstacles.
+- **Occupancy grids and voxel maps** — space divided into cells marked free, occupied or unknown. What path planners need.
+- **Signed distance fields** — the distance to the nearest surface, at every point. Convenient for [trajectory optimisation](/planning/trajectory-optimisation/).
+- **Meshes and learned scene representations** — surfaces and appearance, for rendering and for reasoning about objects.
+- **Semantic maps** — any of the above, labelled with what things are.
+
+## Open problems
+
+A survey by [Cadena and colleagues](https://arxiv.org/abs/1606.05830) frames what remains hard, and the list is still current: operating for months in places that change, recovering reliably from failure, working in dynamic scenes full of moving people and objects, and building maps that capture meaning as well as geometry.
+
+## Sources
+
+1. Cadena, C. et al. "Past, Present, and Future of Simultaneous Localization and Mapping: Toward the Robust-Perception Age." *IEEE Transactions on Robotics* 32(6), 2016. [arXiv:1606.05830](https://arxiv.org/abs/1606.05830)
+2. Dellaert, F. and Kaess, M. "Factor Graphs for Robot Perception." *Foundations and Trends in Robotics* 6(1–2), 2017.
+3. GTSAM: Georgia Tech Smoothing and Mapping library. [gtsam.org](https://gtsam.org/)
+4. Thrun, S., Burgard, W. and Fox, D. *Probabilistic Robotics.* MIT Press, 2005.

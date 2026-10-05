@@ -1,0 +1,33 @@
+---
+// Workspace obstacle and the same obstacle in the configuration space of a two-link arm.
+const l1 = 80, l2 = 70, O = { x: 150, y: 190 }, ob = { x: 62, y: 88, r: 26 }; // obstacle relative to base, y up
+const segDist = (ax: number, ay: number, bx: number, by: number, px: number, py: number) => { const dx = bx - ax, dy = by - ay; const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))); return Math.hypot(ax + t * dx - px, ay + t * dy - py); };
+const collide = (t1: number, t2: number) => { const ex = l1 * Math.cos(t1), ey = l1 * Math.sin(t1), tx = ex + l2 * Math.cos(t1 + t2), ty = ey + l2 * Math.sin(t1 + t2); return segDist(0, 0, ex, ey, ob.x, ob.y) < ob.r || segDist(ex, ey, tx, ty, ob.x, ob.y) < ob.r || ey < -8 || ty < -8; };
+const N = 60, cell = 220 / N, gx = 430, gy = 40;
+const cells: { x: number; y: number; floor: boolean }[] = [];
+for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const t1 = (i / N) * Math.PI, t2 = -Math.PI + (j / N) * 2 * Math.PI; if (collide(t1, t2)) { const ex = l1 * Math.cos(t1), ey = l1 * Math.sin(t1), ty = ey + l2 * Math.sin(t1 + t2); const hitsOb = segDist(0, 0, ex, ey, ob.x, ob.y) < ob.r || segDist(ex, ey, ex + l2 * Math.cos(t1 + t2), ty, ob.x, ob.y) < ob.r; cells.push({ x: gx + i * cell, y: gy + 220 - (j + 1) * cell, floor: !hitsOb }); } }
+const pose = (t1d: number, t2d: number) => { const t1 = (t1d * Math.PI) / 180, t2 = (t2d * Math.PI) / 180; const ex = l1 * Math.cos(t1), ey = l1 * Math.sin(t1); return { e: [O.x + ex, O.y - ey], t: [O.x + ex + l2 * Math.cos(t1 + t2), O.y - ey - l2 * Math.sin(t1 + t2)], c: [gx + (t1d / 180) * 220, gy + 220 - ((t2d + 180) / 360) * 220] }; };
+const a = pose(150, -60), b = pose(20, 50);
+---
+<svg class="fig" viewBox="0 0 700 316" role="img" aria-labelledby="cp-title cp-desc">
+  <title id="cp-title">An obstacle in the workspace and in configuration space</title>
+  <desc id="cp-desc">Left: a two-link arm on a floor with one round obstacle, shown in a start pose and a goal pose. Right: the same problem plotted with the two joint angles as axes. Each arm pose becomes a single point. The round obstacle becomes a large, oddly shaped forbidden region, and the floor becomes another. Planning a motion for the arm is finding a path for a point through the remaining free space.</desc>
+  <text x="150" y="22" text-anchor="middle" class="t-strong">Workspace</text>
+  <line class="axis" x1="20" y1={O.y + 8} x2="300" y2={O.y + 8} /><text x="290" y={O.y + 26} text-anchor="end" class="t-small t-muted">floor</text>
+  <circle class="f3" opacity="0.7" cx={O.x + ob.x} cy={O.y - ob.y} r={ob.r} /><text x={O.x + ob.x} y={O.y - ob.y + 4} text-anchor="middle" class="t-small t-invert">obstacle</text>
+  <polyline class="c1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" points={`${O.x},${O.y} ${a.e.join(',')} ${a.t.join(',')}`} />
+  <polyline class="c2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" points={`${O.x},${O.y} ${b.e.join(',')} ${b.t.join(',')}`} />
+  <circle class="surface wire" stroke-width="2.5" cx={O.x} cy={O.y} r="7" />
+  <text x={a.t[0]} y={a.t[1] - 12} text-anchor="middle" class="t-small t-strong t-c1">start</text><text x={b.t[0] + 6} y={b.t[1] - 12} text-anchor="middle" class="t-small t-strong t-c2">goal</text>
+  <text x="150" y="250" text-anchor="middle" class="t-small t-muted">The arm is a shape. Checking a</text><text x="150" y="265" text-anchor="middle" class="t-small t-muted">path means sweeping that shape.</text>
+
+  <text x={gx + 110} y="22" text-anchor="middle" class="t-strong">Configuration space</text>
+  <rect class="surface axis" x={gx} y={gy} width="220" height="220" />
+  {cells.map((c) => <rect class={c.floor ? 'ink-fill' : 'f3'} opacity={c.floor ? 0.22 : 0.7} x={c.x} y={c.y} width={cell + 0.3} height={cell + 0.3} />)}
+  <circle class="f1" cx={a.c[0]} cy={a.c[1]} r="6" /><circle class="f2" cx={b.c[0]} cy={b.c[1]} r="6" />
+  <text x={a.c[0] - 10} y={a.c[1] + 4} text-anchor="end" class="t-small t-strong t-c1">start</text><text x={b.c[0] + 10} y={b.c[1] + 4} class="t-small t-strong t-c2">goal</text>
+  <text x={gx + 110} y="278" text-anchor="middle" class="t-small t-math">θ₁ (0° to 180°)</text>
+  <text x={gx - 12} y={gy + 110} text-anchor="middle" class="t-small t-math" transform={`rotate(-90 ${gx - 12} ${gy + 110})`}>θ₂ (−180° to 180°)</text>
+  <text x={gx + 110} y="296" text-anchor="middle" class="t-small t-muted"><tspan class="t-c3">orange</tspan>: hits the obstacle · grey: hits the floor</text>
+  <text x={gx + 110} y="311" text-anchor="middle" class="t-small t-muted">The arm is a point. A path is a curve.</text>
+</svg>

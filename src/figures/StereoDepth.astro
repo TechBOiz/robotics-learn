@@ -1,0 +1,31 @@
+---
+// Stereo triangulation and how depth error grows with distance.
+import ArrowDef from '../components/ArrowDef.astro';
+const X = (z: number) => 420 + (z / 10) * 240, Y = (e: number) => 240 - (e / 1.0) * 180;
+// depth error for 0.25 px disparity error, f = 600 px, b = 0.1 m: dz = z^2 * 0.25 / (f*b)
+const err = (z: number) => (z * z * 0.25) / (600 * 0.1);
+const curve = Array.from({ length: 51 }, (_, i) => i * 0.2).filter((z) => err(z) <= 1).map((z) => `${X(z).toFixed(1)},${Y(err(z)).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 700 300" role="img" aria-labelledby="sd-title sd-desc">
+  <title id="sd-title">Stereo depth by triangulation, and its error against distance</title>
+  <desc id="sd-desc">Left: two cameras a known baseline apart see the same point at slightly different image positions. The difference, called disparity, is inversely proportional to depth. Right: because of that inverse relationship, a fixed disparity error produces a depth error that grows with the square of distance. For a 10 centimetre baseline and a quarter-pixel error, the error is about 4 centimetres at 3 metres and 42 centimetres at 10 metres.</desc>
+  <defs><ArrowDef id="ah-sd" /></defs>
+  <circle class="ink-fill" cx="180" cy="40" r="6" /><text x="192" y="38" class="t-small t-strong">P</text>
+  <line class="c1" stroke-width="1.6" x1="100" y1="250" x2="180" y2="40" /><line class="c3" stroke-width="1.6" x1="260" y1="250" x2="180" y2="40" />
+  <line class="c1" stroke-width="4" x1="60" y1="208" x2="140" y2="208" /><line class="c3" stroke-width="4" x1="220" y1="208" x2="300" y2="208" />
+  <circle class="f1" cx="100" cy="250" r="7" /><circle class="f3" cx="260" cy="250" r="7" />
+  <circle class="surface c1" stroke-width="2.5" cx="116" cy="208" r="5" /><circle class="surface c3" stroke-width="2.5" cx="244" cy="208" r="5" />
+  <line class="wire-muted dash" x1="100" y1="250" x2="100" y2="200" /><line class="wire-muted dash" x1="260" y1="250" x2="260" y2="200" />
+  <text x="60" y="198" class="t-small t-c1">left image</text><text x="300" y="198" text-anchor="end" class="t-small t-c3">right image</text>
+  <line class="wire-muted" x1="100" y1="274" x2="260" y2="274" marker-start="url(#ah-sd)" marker-end="url(#ah-sd)" /><text x="180" y="292" text-anchor="middle" class="t-small t-math">baseline b</text>
+  <text x="20" y="120" class="t-strong">Z = f · b / d</text><text x="20" y="138" class="t-small">d = disparity:</text><text x="20" y="153" class="t-small">the shift between</text><text x="20" y="168" class="t-small">the two images</text>
+
+  {[0, 0.25, 0.5, 0.75, 1].map((e) => <g><line class="grid" x1="420" y1={Y(e)} x2="660" y2={Y(e)} /><text x="412" y={Y(e) + 4} text-anchor="end" class="t-small t-muted">{e}</text></g>)}
+  <polyline class="axis" points="420,50 420,240 666,240" />
+  <polyline class="c2 thick" points={curve} />
+  {[0, 5, 10].map((z) => <text x={X(z)} y="258" text-anchor="middle" class="t-small t-muted">{z}</text>)}
+  <text x="540" y="278" text-anchor="middle" class="t-muted">Distance (m)</text>
+  <text x="420" y="38" class="t-small">depth error (m)</text>
+  <text x="440" y="84" class="t-small t-c2">error ∝ Z²</text>
+  <text x="540" y="296" text-anchor="middle" class="t-small t-muted">b = 0.1 m, f = 600 px, ¼-pixel matching error</text>
+</svg>
