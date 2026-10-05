@@ -1,0 +1,6 @@
+---
+// Arrowhead marker for inline SVG figures. Use inside <defs>, then marker-end="url(#<id>)".
+interface Props { id: string }
+const { id } = Astro.props;
+---
+<marker id={id} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrowhead" /></marker>

@@ -1,0 +1,129 @@
+---
+title: "From LQR to model-predictive control"
+summary: "Optimal control replaces gain tuning with a question: what are you trying to minimise? LQR answers it in closed form for linear systems; MPC answers it numerically, with constraints, many times a second."
+category: control
+order: 3
+level: advanced
+updated: 2026-10-05
+tags: [control, lqr, mpc, optimal-control, legged-locomotion]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import RecedingHorizon from '../../../figures/RecedingHorizon.astro';
+
+[PID](/control/pid-control/) asks you to choose gains. **Optimal control** asks you to state what you want — small error, little effort, no limit violated — and derives the controller. That shift matters most for systems with many coupled states, where there is no intuition for what the gains should be.
+
+## The problem
+
+Write the system in discrete time with state $x$ and input $u$:
+
+$$
+x_{k+1} = f(x_k, u_k)
+$$
+
+and choose inputs to minimise a cost summed over time:
+
+$$
+J = \sum_{k} \Big( x_k^{\mathsf T} Q\,x_k + u_k^{\mathsf T} R\,u_k \Big)
+$$
+
+Here $x$ is measured from the target, so the first term penalises error and the second penalises effort. The matrices $Q$ and $R$ are the tuning knobs. They are easier to reason about than gains: "I care ten times more about tilt than about position" is a statement about $Q$.
+
+## LQR
+
+If the dynamics are linear, $x_{k+1} = A\,x_k + B\,u_k$, and there are no limits on anything, the problem has an exact solution. The optimal input is a constant gain on the state:
+
+$$
+u_k = -K\,x_k \qquad K = (R + B^{\mathsf T}P\,B)^{-1}B^{\mathsf T}P\,A
+$$
+
+where $P$ solves the discrete algebraic Riccati equation
+
+$$
+P = Q + A^{\mathsf T}P\,A - A^{\mathsf T}P\,B\,(R + B^{\mathsf T}P\,B)^{-1}B^{\mathsf T}P\,A
+$$
+
+This is the **linear-quadratic regulator**. Every numerical library can solve it. What it gives:
+
+- **All gains at once.** For a system with $n$ states and $m$ inputs, $K$ has $n \times m$ entries, each chosen consistently. Balancing an inverted pendulum on a cart by hand-tuning is tedious; with LQR it is one function call.
+- **Guaranteed stability** of the linear model, with good robustness margins.
+- **A meaning for $P$.** The quantity $x^{\mathsf T}P\,x$ is the total future cost from state $x$ — the *cost-to-go*. This idea returns in MPC and in reinforcement learning, where it is called the value function.
+
+Its limits are the two assumptions. Real robots are nonlinear, so LQR is applied around an operating point or along a trajectory by linearising there. And real robots have limits — torque, joint range, friction — which LQR ignores entirely. It will ask for whatever input the gain dictates.
+
+## Model-predictive control
+
+**Model-predictive control** (MPC) handles constraints directly. At every control step it solves an optimisation over a finite window into the future:
+
+$$
+\begin{aligned}
+\min_{u_0,\dots,u_{N-1}} \quad & \sum_{k=0}^{N-1}\ell(x_k,u_k) + \ell_N(x_N) \\
+\text{subject to}\quad & x_{k+1} = f(x_k,u_k), \quad x_0 = x_{\text{measured}} \\
+& u_{\min}\le u_k\le u_{\max}, \quad g(x_k,u_k)\le 0
+\end{aligned}
+$$
+
+Then it applies only the first input, discards the rest, and solves again from the next measurement.
+
+<Figure number={1} caption="Receding-horizon control.">
+  <RecedingHorizon />
+</Figure>
+
+<Callout title="Why throw the plan away?">
+The plan was computed from a model, and the model is wrong in small ways. Acting on only the first step, then re-planning from what actually happened, corrects for that error continuously. The optimisation gives foresight; the repetition gives feedback.
+</Callout>
+
+What MPC adds over LQR:
+
+- **Constraints are respected.** If a motor will saturate in 200 ms, the plan accounts for it now.
+- **Preview.** A known future — a step coming up, a reference trajectory that turns — shapes the current action.
+- **Changing models.** The dynamics can differ at each step of the horizon, such as which feet are on the ground.
+
+What it costs:
+
+- **Computation.** An optimisation must finish within one control period, every period.
+- **Model dependence.** It is only as good as $f$.
+- **Tuning** moves to the cost weights, horizon length and terminal cost $\ell_N$. The terminal cost stands in for everything beyond the horizon; a good choice, often the LQR cost-to-go, lets the horizon be short.
+
+### Making it fast enough
+
+When the dynamics are linear and the cost quadratic, the problem is a **quadratic program** (QP) — convex, with a single optimum that solvers find reliably in milliseconds. Much practical MPC design is the art of simplifying the model until the problem is a QP.
+
+For nonlinear problems, common approaches are to linearise around the previous solution and solve a QP at each step, or to run only one or two iterations of a nonlinear solver per cycle, starting from the last plan shifted forward by one step. That *warm start* is essential.
+
+## MPC on legged robots
+
+A legged robot's full dynamics are nonlinear, and [its body can be moved only by contact forces](/dynamics/equations-of-motion/) that must stay inside friction cones. That is a constrained optimisation by nature.
+
+An influential formulation, used on the [MIT Cheetah 3](https://dspace.mit.edu/handle/1721.1/138000), makes it tractable with three simplifications:
+
+1. Model the robot as **a single rigid body** pushed by forces at the feet, ignoring leg mass.
+2. Fix the **footstep timing and locations** in advance, so that which feet are in contact at each step of the horizon is known.
+3. Assume small roll and pitch, so the rotational dynamics become linear.
+
+With these, choosing ground reaction forces over the horizon is a QP, with friction cones as linear constraints, solved in a few milliseconds.
+
+The result is a two-layer controller:
+
+- **MPC**, at tens of hertz, chooses contact forces over the next half second or so using the simplified model.
+- **Whole-body control**, at around a kilohertz, solves a smaller QP using the full dynamics to find joint torques that realise those forces while tracking swing-foot and posture targets.
+
+## MPC and learned policies
+
+A policy trained by reinforcement learning can be seen as doing MPC's job with the optimisation moved offline. Training searches, in simulation, for a function that maps state directly to a good action. At run time that function is evaluated in microseconds, with no solver.
+
+| | Model-predictive control | Learned policy |
+|---|---|---|
+| **Computation at run time** | Solves an optimisation each step | One network evaluation |
+| **Constraints** | Explicit, enforced | Encouraged through reward; not guaranteed |
+| **Model** | Simplified so it can be solved online | Full simulator, used offline |
+| **New task** | Change the cost; works immediately | Retrain |
+| **Unmodelled effects** | Limited by the simplified model | Can absorb them if simulated or randomised |
+
+The two are increasingly combined: a learned policy for robust low-level behaviour, with an optimisation layer above it for planning and constraints.
+
+## Sources
+
+1. Di Carlo, J., Wensing, P. M., Katz, B., Bledt, G. and Kim, S. "Dynamic Locomotion in the MIT Cheetah 3 Through Convex Model-Predictive Control." *IEEE/RSJ International Conference on Intelligent Robots and Systems*, 2018. [MIT open-access copy](https://dspace.mit.edu/handle/1721.1/138000) · [doi:10.1109/IROS.2018.8594448](https://doi.org/10.1109/IROS.2018.8594448)
+2. Åström, K. J. and Murray, R. M. *Feedback Systems.* Princeton University Press, 2nd edition, 2021. [fbswiki.org](https://fbswiki.org/wiki/index.php/Feedback_Systems:_An_Introduction_for_Scientists_and_Engineers)
+3. Tedrake, R. *Underactuated Robotics.* MIT course notes. [underactuated.mit.edu](https://underactuated.mit.edu/) — chapters on LQR and trajectory optimisation.

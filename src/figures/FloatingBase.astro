@@ -1,0 +1,25 @@
+---
+// A floating-base robot: unactuated body, actuated joints, contact forces.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 700 310" role="img" aria-labelledby="fb-title fb-desc">
+  <title id="fb-title">A floating-base robot and the forces on it</title>
+  <desc id="fb-desc">A legged robot body is not bolted to anything. Its six degrees of freedom of position and orientation have no motor. Motors act only at the leg joints. The body can be accelerated only by gravity and by contact forces at the feet, which must push up and stay inside a friction cone.</desc>
+  <defs><ArrowDef id="ah-fb" /></defs>
+  <line class="axis" x1="40" y1="262" x2="470" y2="262" />
+  <rect class="box" x="130" y="92" width="250" height="52" rx="16" />
+  <polyline class="c1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" points="170,138 138,200 176,260" />
+  <polyline class="c1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" points="340,138 308,200 346,260" />
+  {[[170, 138], [138, 200], [340, 138], [308, 200]].map(([x, y]) => <circle class="surface c1" stroke-width="2.5" cx={x} cy={y} r="7" />)}
+  <circle class="ink-fill" cx="255" cy="118" r="5" />
+  <line class="wire thick" x1="255" y1="118" x2="255" y2="196" marker-end="url(#ah-fb)" /><text x="263" y="186" class="t-small">gravity</text>
+  <line class="c3 thick" x1="176" y1="260" x2="160" y2="196" marker-end="url(#ah-fb)" /><line class="c3 thick" x1="346" y1="260" x2="362" y2="196" marker-end="url(#ah-fb)" />
+  <polygon class="soft3" points="176,260 152,200 200,200" /><polygon class="soft3" points="346,260 322,200 370,200" />
+  <text x="402" y="228" class="t-small t-c3">contact forces</text><text x="402" y="244" class="t-small t-muted">inside the friction cone</text>
+  <text x="255" y="74" text-anchor="middle" class="t-strong">Body: 6 degrees of freedom, no motor</text>
+  <text x="255" y="56" text-anchor="middle" class="t-small t-muted">position and orientation "float"</text>
+  <text x="60" y="206" text-anchor="end" class="t-small t-c1">actuated</text><text x="60" y="221" text-anchor="end" class="t-small t-c1">joints</text><line class="link" x1="64" y1="204" x2="130" y2="200" />
+  <text x="500" y="100" class="t-strong">Consequence</text>
+  <text x="500" y="120" class="t-small">The robot cannot command its</text><text x="500" y="135" class="t-small">body directly. It can only choose</text><text x="500" y="150" class="t-small">contact forces — by pushing on</text><text x="500" y="165" class="t-small">the ground with its joints.</text>
+  <text x="255" y="290" text-anchor="middle" class="t-small t-muted">Feet can push but not pull, and slip if the force leaves the cone.</text>
+</svg>

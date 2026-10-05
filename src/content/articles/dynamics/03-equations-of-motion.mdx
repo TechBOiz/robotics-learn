@@ -1,0 +1,129 @@
+---
+title: "The equations of motion"
+summary: "One equation relates a robot's joint torques to its motion. What each term means, the algorithms that evaluate it, and what changes when the robot is not bolted to the floor."
+category: dynamics
+order: 3
+level: advanced
+updated: 2026-10-05
+tags: [dynamics, manipulator-equation, floating-base, rnea, contact]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import EomTerms from '../../../figures/EomTerms.astro';
+import InvFwdDynamics from '../../../figures/InvFwdDynamics.astro';
+import FloatingBase from '../../../figures/FloatingBase.astro';
+
+[Kinematics](/dynamics/kinematics-and-the-jacobian/) describes where a robot is. **Dynamics** explains why it moves: which torques produce which accelerations. Controllers use dynamics to decide what to command, and simulators use it to predict what will happen.
+
+## One equation
+
+For any robot made of rigid links, with joint positions $q$:
+
+$$
+M(q)\,\ddot q + C(q,\dot q)\,\dot q + g(q) = \tau + J(q)^{\mathsf T}F
+$$
+
+<Figure number={1} caption="The manipulator equation. The left side is what the robot's own mass demands; the right side is what acts on it.">
+  <EomTerms />
+</Figure>
+
+- **$M(q)$, the mass matrix.** Inertia as seen at the joints. It depends on pose — an outstretched arm is harder to swing than a folded one — and it couples joints: accelerating the shoulder pushes on the elbow.
+- **$C(q,\dot q)\,\dot q$, the velocity terms.** Centrifugal and Coriolis effects, which appear because the links move along curves. They grow with the square of speed and are negligible for slow motion.
+- **$g(q)$, gravity.** The torque needed just to hold the pose.
+- **$\tau$, actuator torques.** What the motors apply.
+- **$J^{\mathsf T}F$, external forces.** Contact with the world, [mapped to the joints](/dynamics/kinematics-and-the-jacobian/).
+
+### The smallest example
+
+A single link of mass $m$ with its centre of mass at distance $l$ from the pivot, with $\theta$ measured from hanging straight down:
+
+$$
+m l^2\,\ddot\theta + m g l \sin\theta = \tau
+$$
+
+There is one inertia term and one gravity term. The velocity term is absent because a single joint has nothing to couple with. Holding the link horizontal takes $\tau = m g l$ and does no work — which is the [holding-torque problem](/actuators/energy-regeneration/) in its simplest form.
+
+### Two properties controllers rely on
+
+- $M(q)$ is symmetric and positive definite, so it can always be inverted.
+- With the standard choice of $C$, the matrix $\dot M - 2C$ is skew-symmetric. This expresses conservation of energy, and it is the key step in most stability proofs for robot controllers.
+
+## Two directions
+
+<Figure number={2} caption="The same equation, solved for different unknowns.">
+  <InvFwdDynamics />
+</Figure>
+
+**Inverse dynamics** asks: for this motion, what torques? Evaluate the left side directly. Controllers use it for feedforward — computing most of the required torque from the model, and leaving feedback to correct only the remaining error.
+
+**Forward dynamics** asks: for these torques, what acceleration? Solve for $\ddot q$:
+
+$$
+\ddot q = M(q)^{-1}\big(\tau + J^{\mathsf T}F - C\dot q - g\big)
+$$
+
+Simulators do this at every time step and integrate.
+
+## Computing it
+
+Deriving the equation by hand with Lagrange's method ($L = T - V$, then $\tfrac{d}{dt}\tfrac{\partial L}{\partial \dot q} - \tfrac{\partial L}{\partial q} = \tau$) works for two or three joints and becomes unmanageable beyond that. Real software uses recursive algorithms that never form the equations symbolically.
+
+| Algorithm | Computes | Cost in number of joints n |
+|---|---|---|
+| **RNEA** — recursive Newton–Euler | Inverse dynamics: $\tau$ from $q, \dot q, \ddot q$ | $O(n)$ |
+| **CRBA** — composite rigid body | The mass matrix $M(q)$ | $O(n^2)$ |
+| **ABA** — articulated body | Forward dynamics: $\ddot q$ from $\tau$ | $O(n)$ |
+
+RNEA makes two passes along the chain: outward from the base, propagating velocities and accelerations; then inward from the tips, accumulating forces. These algorithms, due largely to Featherstone, are what libraries such as [Pinocchio](https://github.com/stack-of-tasks/pinocchio) and simulators such as MuJoCo implement. A humanoid's full inverse dynamics takes microseconds.
+
+## Floating-base robots
+
+An arm is bolted down, so every degree of freedom has a motor. A legged robot is not.
+
+<Figure number={3} caption="A floating-base robot. Six of its degrees of freedom have no actuator.">
+  <FloatingBase />
+</Figure>
+
+Add the body's six degrees of freedom to the state. The equation keeps its form, but the right-hand side changes:
+
+$$
+M(q)\begin{bmatrix}\ddot q_{\text{base}} \\ \ddot q_{\text{joints}}\end{bmatrix} + h(q,\dot q)
+= \begin{bmatrix} 0 \\ \tau \end{bmatrix} + \sum_i J_i^{\mathsf T}F_i
+$$
+
+where $h$ collects the velocity and gravity terms. The zero is the whole story: no motor acts on the base. The robot is **underactuated**. Its body accelerates only because of gravity and the contact forces $F_i$.
+
+<Callout title="Locomotion is contact-force planning">
+A legged robot cannot decide where its body goes. It can only decide how hard to push on the ground, and where. Control of walking and running is largely the problem of choosing contact forces that are physically allowed and that move the body as intended.
+</Callout>
+
+"Physically allowed" means two constraints at each foot:
+
+- **Unilateral:** the ground pushes and never pulls, $F_n \ge 0$.
+- **Friction cone:** the tangential force is limited by the normal force, $\lVert F_t\rVert \le \mu F_n$. Exceed it and the foot slips.
+
+### A useful simplification
+
+Summing over the whole robot, the internal joint forces cancel and only the total momentum remains. For total mass $m$, centre of mass $c$ and angular momentum $L$ about it:
+
+$$
+m\,\ddot c = \sum_i F_i + m\,g
+\qquad
+\dot L = \sum_i (p_i - c)\times F_i
+$$
+
+These **centroidal dynamics** are exact, and involve only six equations however many joints the robot has. Planners for legged robots often work with this reduced model to choose contact forces, then use the full equation to convert them to joint torques.
+
+## How much model do you need?
+
+- **Stiff position control at low speed:** almost none. High-gain feedback hides the dynamics, which is how industrial arms were programmed for decades.
+- **Fast or compliant motion:** gravity compensation at least, and usually full inverse dynamics as feedforward, so feedback gains can stay low.
+- **Legged locomotion:** a model of contact is unavoidable, whether written explicitly in a model-predictive controller or absorbed implicitly by a policy trained in simulation.
+
+Models are always imperfect — friction, flexibility and payloads are hard to capture — so in every case feedback handles what the model misses.
+
+## Sources
+
+1. Lynch, K. M. and Park, F. C. *Modern Robotics: Mechanics, Planning, and Control.* Cambridge University Press, 2017. Chapter 8, "Dynamics of Open Chains". Free preprint: [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)
+2. Featherstone, R. *Rigid Body Dynamics Algorithms.* Springer, 2008.
+3. Pinocchio: a fast and flexible implementation of rigid body dynamics algorithms. [github.com/stack-of-tasks/pinocchio](https://github.com/stack-of-tasks/pinocchio)

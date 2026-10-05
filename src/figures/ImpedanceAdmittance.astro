@@ -1,0 +1,24 @@
+---
+// Impedance versus admittance control.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 720 220" role="img" aria-labelledby="ia-title ia-desc">
+  <title id="ia-title">Impedance control and admittance control</title>
+  <desc id="ia-desc">Impedance control measures motion and commands force, and needs a robot that can produce accurate torque. Admittance control measures force and commands motion, and needs a force sensor on a robot with good position control. They render the same virtual spring and damper through opposite paths.</desc>
+  <defs><ArrowDef id="ah-ia" /></defs>
+  <text x="14" y="30" class="t-strong t-c1">Impedance control</text>
+  <rect class="box" x="14" y="44" width="150" height="50" rx="8" /><text x="89" y="66" text-anchor="middle" class="t-strong">Measure motion</text><text x="89" y="83" text-anchor="middle" class="t-small t-muted">encoders</text>
+  <line class="wire" x1="164" y1="69" x2="206" y2="69" marker-end="url(#ah-ia)" />
+  <rect class="soft1 c1" stroke-width="1.4" x="208" y="44" width="170" height="50" rx="8" /><text x="293" y="66" text-anchor="middle" class="t-strong">Virtual spring-damper</text><text x="293" y="83" text-anchor="middle" class="t-small t-muted">computes a force</text>
+  <line class="wire" x1="378" y1="69" x2="420" y2="69" marker-end="url(#ah-ia)" />
+  <rect class="box" x="422" y="44" width="150" height="50" rx="8" /><text x="497" y="66" text-anchor="middle" class="t-strong">Command torque</text><text x="497" y="83" text-anchor="middle" class="t-small t-muted">τ = Jᵀ F</text>
+  <text x="590" y="62" class="t-small">Needs a transparent,</text><text x="590" y="77" class="t-small">torque-controlled robot.</text><text x="590" y="92" class="t-small t-muted">Best at being soft.</text>
+
+  <text x="14" y="140" class="t-strong t-c3">Admittance control</text>
+  <rect class="box" x="14" y="154" width="150" height="50" rx="8" /><text x="89" y="176" text-anchor="middle" class="t-strong">Measure force</text><text x="89" y="193" text-anchor="middle" class="t-small t-muted">wrist F/T sensor</text>
+  <line class="wire" x1="164" y1="179" x2="206" y2="179" marker-end="url(#ah-ia)" />
+  <rect class="soft3 c3" stroke-width="1.4" x="208" y="154" width="170" height="50" rx="8" /><text x="293" y="176" text-anchor="middle" class="t-strong">Virtual spring-damper</text><text x="293" y="193" text-anchor="middle" class="t-small t-muted">computes a motion</text>
+  <line class="wire" x1="378" y1="179" x2="420" y2="179" marker-end="url(#ah-ia)" />
+  <rect class="box" x="422" y="154" width="150" height="50" rx="8" /><text x="497" y="176" text-anchor="middle" class="t-strong">Command position</text><text x="497" y="193" text-anchor="middle" class="t-small t-muted">stiff inner loop</text>
+  <text x="590" y="172" class="t-small">Works on a stiff,</text><text x="590" y="187" class="t-small">geared industrial arm.</text><text x="590" y="202" class="t-small t-muted">Best at being stiff.</text>
+</svg>

@@ -1,0 +1,27 @@
+---
+// PID loop with feedforward.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 720 250" role="img" aria-labelledby="pb-title pb-desc">
+  <title id="pb-title">A PID control loop with feedforward</title>
+  <desc id="pb-desc">The error between target and measurement feeds three parallel terms: proportional, integral and derivative. Their sum, plus an optional feedforward term computed directly from the target, drives the plant. The measured output is fed back and subtracted from the target.</desc>
+  <defs><ArrowDef id="ah-pb" /></defs>
+  <text x="12" y="118" class="t-small t-strong">target</text>
+  <line class="wire" x1="54" y1="124" x2="84" y2="124" marker-end="url(#ah-pb)" />
+  <circle class="surface wire" cx="98" cy="124" r="13" /><text x="98" y="129" text-anchor="middle" class="t-strong">−</text>
+  <text x="140" y="116" text-anchor="middle" class="t-small">error</text>
+  <path class="wire" d="M111 124 H170 M170 64 V184 M170 64 H208 M170 124 H208 M170 184 H208" />
+  <line class="wire" x1="200" y1="64" x2="208" y2="64" marker-end="url(#ah-pb)" /><line class="wire" x1="200" y1="124" x2="208" y2="124" marker-end="url(#ah-pb)" /><line class="wire" x1="200" y1="184" x2="208" y2="184" marker-end="url(#ah-pb)" />
+  <rect class="soft1 c1" stroke-width="1.4" x="210" y="42" width="150" height="44" rx="8" /><text x="285" y="62" text-anchor="middle" class="t-strong">P: K_p · error</text><text x="285" y="78" text-anchor="middle" class="t-small t-muted">the present</text>
+  <rect class="soft2 c2" stroke-width="1.4" x="210" y="102" width="150" height="44" rx="8" /><text x="285" y="122" text-anchor="middle" class="t-strong">I: K_i · ∫ error</text><text x="285" y="138" text-anchor="middle" class="t-small t-muted">the past</text>
+  <rect class="soft3 c3" stroke-width="1.4" x="210" y="162" width="150" height="44" rx="8" /><text x="285" y="182" text-anchor="middle" class="t-strong">D: K_d · d(error)/dt</text><text x="285" y="198" text-anchor="middle" class="t-small t-muted">the trend</text>
+  <path class="wire" d="M360 64 H410 V110" marker-end="url(#ah-pb)" /><line class="wire" x1="360" y1="124" x2="396" y2="124" marker-end="url(#ah-pb)" /><path class="wire" d="M360 184 H410 V138" marker-end="url(#ah-pb)" />
+  <circle class="surface wire" cx="410" cy="124" r="13" /><text x="410" y="129" text-anchor="middle" class="t-strong">+</text>
+  <line class="wire" x1="423" y1="124" x2="476" y2="124" marker-end="url(#ah-pb)" /><text x="448" y="146" text-anchor="middle" class="t-small">command</text>
+  <rect class="box" x="478" y="98" width="110" height="52" rx="8" /><text x="533" y="121" text-anchor="middle" class="t-strong">Plant</text><text x="533" y="139" text-anchor="middle" class="t-small t-muted">motor + load</text>
+  <line class="wire" x1="588" y1="124" x2="700" y2="124" marker-end="url(#ah-pb)" /><text x="650" y="116" text-anchor="middle" class="t-small t-strong">output</text>
+  <path class="wire" d="M630 124 V232 H98 V139" marker-end="url(#ah-pb)" /><circle class="ink-fill" cx="630" cy="124" r="3" />
+  <text x="364" y="226" text-anchor="middle" class="t-small">measurement</text>
+  <path class="wire-muted dash" d="M70 124 V20 H410 V110" marker-end="url(#ah-pb)" /><circle class="ink-fill" cx="70" cy="124" r="3" />
+  <text x="240" y="14" text-anchor="middle" class="t-small t-c4">feedforward: what the model says the target needs</text>
+</svg>

@@ -486,3 +486,4 @@ img, svg { max-width: 100%; }
 .fig tspan.t-c1 { fill: var(--fig-1); }
 .fig tspan.t-c2 { fill: var(--fig-2); }
 .fig tspan.t-c4 { fill: var(--fig-4); }
+.fig tspan.t-c3 { fill: var(--fig-3); }

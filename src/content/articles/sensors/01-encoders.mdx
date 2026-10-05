@@ -1,0 +1,103 @@
+---
+title: "Encoders and position sensing"
+summary: "Every joint needs to know its angle. How incremental and absolute encoders work, what resolution really buys you, why velocity is harder to measure than position, and why robot joints often carry two encoders."
+category: sensors
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [sensors, encoders, position, velocity]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import Quadrature from '../../../figures/Quadrature.astro';
+import MagEncoder from '../../../figures/MagEncoder.astro';
+
+A robot that does not know its joint angles cannot do anything else. Position sensing is the most basic measurement on the machine, and it does double duty: the drive needs rotor angle to [commutate the motor](/actuators/motor-drive-algorithms/), and the controller needs joint angle to know where the limb is.
+
+## Incremental and absolute
+
+An **incremental encoder** reports *changes* in angle. A disc with evenly spaced lines passes a detector, producing two pulse trains a quarter-cycle apart.
+
+<Figure number={1} caption="Quadrature output. The quarter-cycle offset between A and B is what encodes direction.">
+  <Quadrature />
+</Figure>
+
+Counting every edge on both channels gives four counts per line, so a 1,000-line disc resolves 4,000 positions per turn. It is simple and fast. Its weakness is that it has no memory: at power-up the count is zero wherever the shaft happens to be, and the robot must move to a known reference to find itself. A third channel, the *index*, pulses once per turn for this purpose.
+
+An **absolute encoder** reports the angle itself, immediately at power-up. For a robot that may be switched on with its arm raised over a workpiece, or mid-stride, that matters. Almost all modern robot joints use absolute sensing.
+
+**Multi-turn** absolute encoders also track how many full revolutions have occurred. This is needed on the motor side of a reducer, where the rotor turns many times per joint revolution. They keep count through power loss with a small battery, an energy-harvesting pulse wire, or a geared second stage.
+
+## How the angle is sensed
+
+| Principle | How it works | Strengths | Weaknesses |
+|---|---|---|---|
+| **Optical** | Light through or off a patterned disc | Highest resolution and accuracy | Sensitive to dust, oil and shock |
+| **Magnetic, on-axis** | Chip reads the field of a magnet on the shaft end | Small, cheap, robust | Needs the shaft end; affected by stray fields |
+| **Magnetic, off-axis** | Sensors read a magnetised ring | Leaves the centre open for a hollow shaft | Lower accuracy without calibration |
+| **Inductive** | Coils on a board sense a patterned metal target | Immune to magnetic fields and contamination; hollow-shaft friendly | Larger; needs careful mounting |
+| **Capacitive** | Patterned electrodes on rotor and stator | Thin, low power | Sensitive to moisture and gap changes |
+| **Resolver** | A rotating transformer giving sine and cosine signals | Extremely rugged; no electronics on the shaft | Bulky; needs conversion electronics |
+
+<Figure number={2} caption="The most common arrangement on small robot actuators: a magnet on the rotor shaft and a sensor chip on the drive board.">
+  <MagEncoder />
+</Figure>
+
+The on-axis magnetic encoder dominates in compact actuators because the sensor chip can sit directly on the drive's circuit board. Its drawback is that it occupies the centre of the shaft — exactly where a hollow-shaft joint wants to route cables. Those joints use off-axis magnetic or inductive rings instead.
+
+## Resolution, accuracy, repeatability
+
+These three are often confused.
+
+- **Resolution** is the smallest step the sensor reports. An $n$-bit encoder divides a turn into $2^n$ steps.
+- **Accuracy** is how far the reported angle can be from the true angle.
+- **Repeatability** is how consistently it reports the same angle for the same true position.
+
+| Bits | Steps per turn | Angle per step |
+|---|---|---|
+| 12 | 4,096 | 0.088° |
+| 14 | 16,384 | 0.022° |
+| 17 | 131,072 | 0.0027° |
+| 19 | 524,288 | 0.0007° |
+
+A sensor can have fine resolution and poor accuracy. Magnetic encoders in particular have errors that repeat once or twice per turn, caused by the magnet being slightly off-centre or tilted. Because the error repeats, it can be measured once and corrected with a lookup table — good repeatability is what makes calibration possible.
+
+At the end of a 0.5 m arm, one step of a 14-bit encoder on the joint is about 0.2 mm of motion at the tip. Placed on the motor side of a 100:1 reducer, the same encoder resolves a hundred times finer at the joint — but then it no longer sees the reducer's backlash and flex.
+
+## Velocity is harder than position
+
+No common sensor measures joint velocity directly. It is computed from position:
+
+$$
+\omega \approx \frac{\theta_k - \theta_{k-1}}{\Delta t}
+$$
+
+Position comes in steps, so this estimate comes in steps too, of size (angle per step) / (sample period). For a 14-bit encoder sampled at 10 kHz:
+
+$$
+\frac{0.022^\circ}{0.0001\ \text{s}} = 220^\circ/\text{s}
+$$
+
+<Callout title="The quantisation trap">
+At 10 kHz, a 14-bit encoder cannot distinguish zero velocity from 220°/s in a single sample. Raw differenced velocity is far too noisy to feed into a damping gain. Sampling faster makes it worse, not better.
+</Callout>
+
+Practical drives therefore estimate velocity with a filter or an observer — often a tracking loop that models the shaft as moving at a smoothly varying speed and corrects itself from each new angle reading. That trades noise for a small delay, and the delay limits how much damping gain a joint controller can use. Higher encoder resolution directly relaxes this trade, which is one reason high-performance joints use 17 bits or more.
+
+## Why two encoders per joint
+
+Many robot joints carry one encoder on the motor and another on the output.
+
+- **The motor-side encoder** gives the rotor angle for commutation, at high effective resolution, with no reducer dynamics in between.
+- **The output-side encoder** gives the true joint angle, including backlash and reducer flex, and gives it absolutely at power-up.
+
+Together they offer something more: the *difference* between them, scaled by the gear ratio, is the twist in the reducer. Since the reducer behaves like a stiff spring, that twist is a rough measure of joint torque — the same principle as a [series elastic actuator](/actuators/designing-the-alternatives/), without an added spring.
+
+## Interfaces
+
+Incremental encoders output raw A/B/index pulses. Absolute encoders use a serial link: SPI for chips on the same board, and differential protocols such as SSI, BiSS-C or EnDat for cabled sensors. For control, what matters is that the reading is taken at a known instant, synchronised to the drive's control cycle. A position sample of uncertain age is a source of velocity error.
+
+## Sources
+
+1. Siciliano, B. and Khatib, O. (eds.) *Springer Handbook of Robotics*, 2nd edition. Springer, 2016. Part on sensing and perception.
+2. Lynch, K. M. and Park, F. C. *Modern Robotics: Mechanics, Planning, and Control.* Cambridge University Press, 2017. Free preprint: [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)

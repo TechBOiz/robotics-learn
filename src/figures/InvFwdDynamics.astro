@@ -1,0 +1,20 @@
+---
+// Inverse versus forward dynamics.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 720 176" role="img" aria-labelledby="if-title if-desc">
+  <title id="if-title">Inverse and forward dynamics</title>
+  <desc id="if-desc">Inverse dynamics takes a desired motion and returns the joint torques that produce it; controllers use it. Forward dynamics takes joint torques and returns the resulting acceleration; simulators use it.</desc>
+  <defs><ArrowDef id="ah-if" /></defs>
+  <rect class="soft1" x="20" y="18" width="190" height="52" rx="10" /><text x="115" y="41" text-anchor="middle" class="t-strong">Desired motion</text><text x="115" y="59" text-anchor="middle" class="t-small t-muted">q, q̇, q̈</text>
+  <line class="wire" x1="210" y1="44" x2="268" y2="44" marker-end="url(#ah-if)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="270" y="14" width="180" height="60" rx="10" /><text x="360" y="40" text-anchor="middle" class="t-strong">Inverse dynamics</text><text x="360" y="58" text-anchor="middle" class="t-small t-muted">e.g. RNEA</text>
+  <line class="wire" x1="450" y1="44" x2="508" y2="44" marker-end="url(#ah-if)" />
+  <rect class="soft3" x="510" y="18" width="190" height="52" rx="10" /><text x="605" y="41" text-anchor="middle" class="t-strong">Torques τ</text><text x="605" y="59" text-anchor="middle" class="t-small t-muted">used by controllers</text>
+
+  <rect class="soft3" x="20" y="104" width="190" height="52" rx="10" /><text x="115" y="127" text-anchor="middle" class="t-strong">Torques τ</text><text x="115" y="145" text-anchor="middle" class="t-small t-muted">and current q, q̇</text>
+  <line class="wire" x1="210" y1="130" x2="268" y2="130" marker-end="url(#ah-if)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="270" y="100" width="180" height="60" rx="10" /><text x="360" y="126" text-anchor="middle" class="t-strong">Forward dynamics</text><text x="360" y="144" text-anchor="middle" class="t-small t-muted">e.g. ABA</text>
+  <line class="wire" x1="450" y1="130" x2="508" y2="130" marker-end="url(#ah-if)" />
+  <rect class="soft1" x="510" y="104" width="190" height="52" rx="10" /><text x="605" y="127" text-anchor="middle" class="t-strong">Acceleration q̈</text><text x="605" y="145" text-anchor="middle" class="t-small t-muted">used by simulators</text>
+</svg>

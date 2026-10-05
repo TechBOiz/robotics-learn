@@ -1,0 +1,29 @@
+---
+// A point expressed in two frames.
+import ArrowDef from '../components/ArrowDef.astro';
+const W = { x: 90, y: 250 }, B = { x: 300, y: 190 }, P = { x: 470, y: 78 };
+const a = (14 * Math.PI) / 180;
+const bx = [B.x + 110 * Math.cos(a), B.y + 110 * Math.sin(a)];
+const by = [B.x + 110 * Math.cos(a - Math.PI / 2), B.y + 110 * Math.sin(a - Math.PI / 2)];
+---
+<svg class="fig" viewBox="0 0 680 300" role="img" aria-labelledby="f2-title f2-desc">
+  <title id="f2-title">One point described in two coordinate frames</title>
+  <desc id="f2-desc">A world frame W and a body frame B that is shifted and rotated relative to it. The same point p has different coordinates in each. The vector from W to p equals the vector from W to B plus the vector from B to p, once that second vector is rotated into W's axes.</desc>
+  <defs><ArrowDef id="ah-f2" /></defs>
+  <line class="wire thick" x1={W.x} y1={W.y} x2={W.x + 110} y2={W.y} marker-end="url(#ah-f2)" /><line class="wire thick" x1={W.x} y1={W.y} x2={W.x} y2={W.y - 110} marker-end="url(#ah-f2)" />
+  <text x={W.x + 118} y={W.y + 5} class="t-small">x</text><text x={W.x - 4} y={W.y - 118} class="t-small">y</text>
+  <text x={W.x - 14} y={W.y + 22} class="t-strong">W</text><text x={W.x + 8} y={W.y + 22} class="t-small t-muted">world frame</text>
+  <line class="c1 thick" x1={B.x} y1={B.y} x2={bx[0]} y2={bx[1]} marker-end="url(#ah-f2)" /><line class="c1 thick" x1={B.x} y1={B.y} x2={by[0]} y2={by[1]} marker-end="url(#ah-f2)" />
+  <text x={bx[0] + 6} y={bx[1] + 6} class="t-small t-c1">x</text><text x={by[0] + 8} y={by[1] + 2} class="t-small t-c1">y</text>
+  <text x={B.x - 2} y={B.y + 28} class="t-strong t-c1">B</text><text x={B.x + 16} y={B.y + 28} class="t-small t-muted">body frame</text>
+  <line class="c3" stroke-width="1.8" x1={W.x} y1={W.y} x2={B.x - 4} y2={B.y + 1} marker-end="url(#ah-f2)" />
+  <text x="196" y="240" class="t-small t-c3 t-math">t</text>
+  <line class="c2" stroke-width="1.8" x1={B.x} y1={B.y} x2={P.x - 5} y2={P.y + 4} marker-end="url(#ah-f2)" />
+  <text x="404" y="150" class="t-small t-c2 t-math">p in B</text>
+  <line class="wire-muted dash" x1={W.x} y1={W.y} x2={P.x - 6} y2={P.y + 4} />
+  <text x="222" y="150" class="t-small t-math">p in W</text>
+  <circle class="ink-fill" cx={P.x} cy={P.y} r="5" /><text x={P.x + 10} y={P.y + 4} class="t-strong">p</text>
+  <text x="490" y="200" class="t-strong">p (in W) = R · p (in B) + t</text>
+  <text x="490" y="220" class="t-small"><tspan class="t-c1">R</tspan>: how B is rotated relative to W</text>
+  <text x="490" y="237" class="t-small"><tspan class="t-c3">t</tspan>: where B's origin sits in W</text>
+</svg>

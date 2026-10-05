@@ -1,0 +1,29 @@
+---
+// Model-predictive control: plan over a horizon, apply the first step, repeat.
+const X = (t: number) => 60 + t * 44;
+const Y = (v: number) => 190 - v * 120;
+const past = Array.from({ length: 21 }, (_, i) => i * 0.25).map((t) => `${X(t).toFixed(1)},${Y(0.18 + 0.05 * t + 0.04 * Math.sin(t * 2)).toFixed(1)}`).join(' ');
+const y0 = 0.18 + 0.05 * 5 + 0.04 * Math.sin(10);
+const plan = (start: number, yStart: number) => Array.from({ length: 33 }, (_, i) => i * 0.25).map((s) => `${X(start + s).toFixed(1)},${Y(1 - (1 - yStart) * Math.exp(-s / 2.2)).toFixed(1)}`).join(' ');
+const y1 = 1 - (1 - y0) * Math.exp(-1 / 2.2);
+---
+<svg class="fig" viewBox="0 0 700 300" role="img" aria-labelledby="rh-title rh-desc">
+  <title id="rh-title">The receding horizon in model-predictive control</title>
+  <desc id="rh-desc">At the current time the controller optimises a whole trajectory over a fixed horizon into the future. It applies only the first step of that plan. One step later it measures the new state and plans again over a horizon that has shifted forward by one step.</desc>
+  <line class="wire-muted dash" x1="60" y1={Y(1)} x2="680" y2={Y(1)} /><text x="64" y={Y(1) - 6} class="t-small t-muted">target</text>
+  <rect class="soft1" x={X(5)} y="40" width={X(13) - X(5)} height="170" />
+  <rect class="none c3 dash" stroke-width="1.4" x={X(6)} y="46" width={X(14) - X(6)} height="158" />
+  <polyline class="axis" points="60,30 60,210 686,210" />
+  <polyline class="wire thick" points={past} />
+  <polyline class="c1 thick" points={plan(5, y0)} />
+  <polyline class="c3" fill="none" stroke-width="1.8" stroke-dasharray="5 4" points={plan(6, y1)} />
+  <line class="wire" x1={X(5)} y1="30" x2={X(5)} y2="210" /><text x={X(5)} y="24" text-anchor="middle" class="t-small t-strong">now</text>
+  <circle class="f2" cx={X(6)} cy={Y(y1)} r="5" />
+  <line class="c2" stroke-width="5" x1={X(5)} y1={Y(y0)} x2={X(6)} y2={Y(y1)} />
+  <text x={X(2.5)} y="228" text-anchor="middle" class="t-small t-muted">past</text>
+  <text x={X(9)} y="228" text-anchor="middle" class="t-small t-c1">prediction horizon</text>
+  <text x={X(10)} y="62" text-anchor="middle" class="t-small t-c3">next step: the window slides forward</text>
+  <text x={X(5.6)} y={Y(y0) + 26} class="t-small t-c2">only this first step is applied</text>
+  <text x="350" y="262" text-anchor="middle" class="t-small">Plan far, act briefly, measure, repeat. Re-planning from each new measurement is what makes it feedback control.</text>
+  <text x="350" y="282" text-anchor="middle" class="t-small t-muted">Constraints — torque limits, friction cones, obstacles — are enforced over the whole blue window.</text>
+</svg>

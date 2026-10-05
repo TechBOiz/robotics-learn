@@ -1,0 +1,25 @@
+---
+// Where force can be measured along an arm.
+const pts = [
+  { x: 96, y: 232, lx: 30, ly: 280, t: 'Motor current', s: 'in the drive; free,', s2: 'but includes gear friction', cls: 'c1' },
+  { x: 222, y: 118, lx: 150, ly: 40, t: 'Joint torque sensor', s: 'after the reducer;', s2: 'sees everything beyond it', cls: 'c2' },
+  { x: 432, y: 150, lx: 400, ly: 252, t: 'Wrist force/torque sensor', s: 'six axes; sees only the', s2: 'tool and what it touches', cls: 'c3' },
+  { x: 522, y: 118, lx: 500, ly: 36, t: 'Fingertip tactile', s: 'where contact happens;', s2: 'local pressure and slip', cls: 'c4' },
+];
+---
+<svg class="fig" viewBox="0 0 700 340" role="img" aria-labelledby="fp-title fp-desc">
+  <title id="fp-title">Four places to measure force on a robot arm</title>
+  <desc id="fp-desc">From the base outward: motor current in the drive, a joint torque sensor after the reducer, a six-axis force and torque sensor at the wrist, and tactile sensors in the fingertips. The closer the sensor is to the contact, the less of the robot's own weight and inertia it has to subtract.</desc>
+  <rect class="box" x="60" y="232" width="72" height="26" rx="4" />
+  <polyline class="wire" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" points="96,232 222,118 432,150" opacity="0.4" />
+  <path class="wire" stroke-width="5" stroke-linecap="round" fill="none" d="M432 150 L470 150 M470 132 V168 M470 132 H520 M470 168 H520" opacity="0.55" />
+  {pts.map((p) => (
+    <g>
+      <line class="link" x1={p.x} y1={p.y} x2={p.lx + 20} y2={p.ly > 200 ? p.ly - 16 : p.ly + 34} />
+      <circle class={`surface ${p.cls}`} stroke-width="3" cx={p.x} cy={p.y} r="8" />
+      <text x={p.lx} y={p.ly} class={`t-strong t-${p.cls}`}>{p.t}</text>
+      <text x={p.lx} y={p.ly + 16} class="t-small">{p.s}</text><text x={p.lx} y={p.ly + 30} class="t-small">{p.s2}</text>
+    </g>
+  ))}
+  <text x="350" y="334" text-anchor="middle" class="t-small t-muted">Further from the base: cleaner contact measurement, but more wiring, cost and fragility.</text>
+</svg>

@@ -1,0 +1,37 @@
+---
+// Two-link planar arm: one tip position, two joint solutions.
+import ArrowDef from '../components/ArrowDef.astro';
+const O = { x: 120, y: 270 }, l1 = 150, l2 = 120;
+const t1 = (70 * Math.PI) / 180, t2 = (-80 * Math.PI) / 180;
+const S = (x: number, y: number) => [O.x + x, O.y - y];
+const e = [l1 * Math.cos(t1), l1 * Math.sin(t1)];
+const tip = [e[0] + l2 * Math.cos(t1 + t2), e[1] + l2 * Math.sin(t1 + t2)];
+// mirror the elbow about the base-to-tip line for the second solution
+const d2 = tip[0] ** 2 + tip[1] ** 2, k = (e[0] * tip[0] + e[1] * tip[1]) / d2;
+const e2 = [2 * k * tip[0] - e[0], 2 * k * tip[1] - e[1]];
+const [ex, ey] = S(e[0], e[1]), [tx, ty] = S(tip[0], tip[1]), [fx, fy] = S(e2[0], e2[1]);
+const arc1 = `M${O.x + 46} ${O.y} A46 46 0 0 0 ${O.x + 46 * Math.cos(t1)} ${O.y - 46 * Math.sin(t1)}`;
+---
+<svg class="fig" viewBox="0 0 680 310" role="img" aria-labelledby="ta-title ta-desc">
+  <title id="ta-title">A two-link planar arm reaching one point in two ways</title>
+  <desc id="ta-desc">An arm with two links and two joints reaches a tip position. A second, mirrored configuration with the elbow on the other side reaches exactly the same point. Forward kinematics maps angles to the tip; inverse kinematics maps the tip back to angles and has two answers here.</desc>
+  <defs><ArrowDef id="ah-ta" /></defs>
+  <line class="axis" x1="60" y1={O.y} x2="430" y2={O.y} /><line class="axis" x1={O.x} y1="290" x2={O.x} y2="30" />
+  <text x="434" y={O.y + 4} class="t-small t-muted">x</text><text x={O.x - 4} y="24" class="t-small t-muted">y</text>
+  <polyline class="wire-muted dash" stroke-width="5" stroke-linecap="round" fill="none" points={`${O.x},${O.y} ${fx},${fy} ${tx},${ty}`} opacity="0.6" />
+  <circle class="surface wire-muted" cx={fx} cy={fy} r="6" />
+  <polyline class="c1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" points={`${O.x},${O.y} ${ex},${ey} ${tx},${ty}`} />
+  <circle class="surface c1" stroke-width="2.5" cx={O.x} cy={O.y} r="8" /><circle class="surface c1" stroke-width="2.5" cx={ex} cy={ey} r="8" />
+  <circle class="f3" cx={tx} cy={ty} r="7" />
+  <path class="wire none" d={arc1} /><text x={O.x + 52} y={O.y - 22} class="t-small t-math">θ₁</text>
+  <line class="wire-muted dash" x1={ex} y1={ey} x2={ex + 60 * Math.cos(t1)} y2={ey - 60 * Math.sin(t1)} />
+  <text x={ex + 34} y={ey - 6} class="t-small t-math">θ₂</text>
+  <text x={(O.x + ex) / 2 - 26} y={(O.y + ey) / 2} class="t-small t-math">l₁</text>
+  <text x={(ex + tx) / 2 + 2} y={(ey + ty) / 2 - 12} class="t-small t-math">l₂</text>
+  <text x={tx + 12} y={ty + 4} class="t-strong t-c3">tip (x, y)</text>
+  <text x={fx + 14} y={fy + 16} class="t-small t-muted">the other solution</text>
+  <line class="wire" x1="470" y1="96" x2="640" y2="96" marker-end="url(#ah-ta)" />
+  <text x="555" y="86" text-anchor="middle" class="t-strong">forward kinematics</text><text x="555" y="114" text-anchor="middle" class="t-small">angles → tip: one answer</text>
+  <line class="wire" x1="640" y1="182" x2="470" y2="182" marker-end="url(#ah-ta)" />
+  <text x="555" y="172" text-anchor="middle" class="t-strong">inverse kinematics</text><text x="555" y="200" text-anchor="middle" class="t-small">tip → angles: two answers here,</text><text x="555" y="215" text-anchor="middle" class="t-small">none if out of reach</text>
+</svg>

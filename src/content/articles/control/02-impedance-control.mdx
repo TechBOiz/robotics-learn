@@ -1,0 +1,96 @@
+---
+title: "Impedance control"
+summary: "A robot in contact cannot control position and force independently. Impedance control stops trying, and regulates the relationship between them instead — making the robot behave like a spring and damper you get to design."
+category: control
+order: 2
+level: intermediate
+updated: 2026-10-05
+tags: [control, impedance, admittance, force-control, compliance]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import VirtualSpring from '../../../figures/VirtualSpring.astro';
+import ImpedanceAdmittance from '../../../figures/ImpedanceAdmittance.astro';
+
+Ask a stiff position-controlled robot to move its hand 1 mm into a steel table. It will try. The position error stays at 1 mm, the controller raises torque to remove it, and the result is whatever force the motors can produce — or a fault. The robot was given a command that the world does not permit.
+
+The underlying fact is physical. At a point of contact, the environment fixes a relationship between force and motion. A robot can choose one of them, or a relationship between them, but not both independently.
+
+## The idea
+
+**Impedance control**, introduced by [Neville Hogan in 1985](https://doi.org/10.1115/1.3140702), does not command a position or a force. It commands how the robot should *respond* to being displaced:
+
+$$
+F = K\,(x_d - x) + D\,(\dot x_d - \dot x)
+$$
+
+The robot behaves as though a spring of stiffness $K$ and a damper $D$ connected its hand to a moving target $x_d$.
+
+<Figure number={1} caption="The same controller in free space and in contact. Nothing switches between the two cases.">
+  <VirtualSpring />
+</Figure>
+
+In free space there is nothing to push against, so the hand follows the target. In contact, the hand stops where the surface is, and pushes with a force set by how far the target lies beyond it. The same law handles both, and the transition between them, with no mode switch.
+
+<Callout title="What you gain">
+Contact force becomes predictable and bounded by design. Push the target 5 mm into a surface with $K$ = 500 N/m and the force is 2.5 N — whether the surface is where you thought it was or not. Position errors turn into small, safe forces instead of large, dangerous ones.
+</Callout>
+
+## Implementing it
+
+To produce that force at the hand, use the [Jacobian transpose](/dynamics/kinematics-and-the-jacobian/), and add the torque needed to carry the arm's own weight:
+
+$$
+\tau = J(q)^{\mathsf T}\Big[K\,(x_d - x) + D\,(\dot x_d - \dot x)\Big] + g(q)
+$$
+
+Gravity compensation matters: without it, the virtual spring would have to hold the arm up, and the hand would sag by an amount that depends on stiffness.
+
+The same idea applied per joint is the [joint-level command](/actuators/motor-drive-algorithms/) used by torque-controlled legged robots:
+
+$$
+\tau = k_p\,(q^* - q) + k_d\,(\dot q^* - \dot q) + \tau_{\text{ff}}
+$$
+
+Stiffness can differ by direction. For inserting a peg, make the hand stiff along the insertion axis and soft sideways, so that contact with the chamfer guides the peg in instead of jamming it.
+
+## Impedance and admittance
+
+There are two ways to make a robot render a spring, and they suit opposite kinds of hardware.
+
+<Figure number={2} caption="Two routes to the same behaviour.">
+  <ImpedanceAdmittance />
+</Figure>
+
+**Impedance control** measures motion and outputs force. It needs actuators that deliver the torque they are asked for: [quasi-direct drive](/actuators/designing-a-quasi-direct-drive-actuator/), series elastic, or joint-torque-sensed arms. It is naturally good at being soft, and struggles to feel very stiff.
+
+**Admittance control** measures force and outputs motion. A [wrist force sensor](/sensors/force-torque-and-touch/) feeds a virtual spring-damper model, whose resulting motion is tracked by an ordinary stiff position controller. It runs on conventional industrial arms. It is naturally good at being stiff, and can become unstable when trying to be very soft against a rigid surface.
+
+## What limits the stiffness you can render
+
+The virtual spring is produced by a sampled, delayed controller acting through real actuators. Three things bound how stiff it can be before it oscillates:
+
+- **Delay.** A spring that responds late injects energy instead of storing it. Faster loops allow higher stiffness, which is why the law is run inside the joint drive at kilohertz rates.
+- **Velocity quality.** Damping needs a clean velocity signal, and [encoder quantisation](/sensors/encoders/) makes that noisy.
+- **Physical damping.** A little real friction in the mechanism stabilises the loop. A perfectly frictionless joint is harder to make stiff.
+
+Stability in contact is usually argued through **passivity**: a controller that can never deliver more energy than it has absorbed cannot destabilise contact with any passive environment, however stiff. A real spring and damper are passive by nature; a digital imitation of one is only approximately so.
+
+## Choosing the impedance
+
+- **Unknown or fragile contact:** low stiffness. Position accuracy is given up for safety.
+- **Free motion that must be accurate:** higher stiffness, or better, keep stiffness low and add a [feedforward torque](/control/pid-control/) from the dynamics model.
+- **Critical damping** remains a good default: $D = 2\sqrt{K\,m}$ for the effective mass $m$ being moved.
+- **Vary it during the task.** Stiff in approach, soft on contact. Learned policies for manipulation and locomotion often output target positions for a low-gain impedance controller for exactly this reason: the hardware layer stays compliant whatever the policy does.
+
+## Explicit force control
+
+Sometimes a specific force is the goal: polish with 10 N, or press a seal with 50 N. **Hybrid position/force control** assigns each direction to one or the other — force along the surface normal, position along the surface. It gives accurate forces but needs a correct model of where the surface is, and it does require switching modes at the moment of contact.
+
+Impedance control is the more forgiving default. Explicit force control is the tool for when a specific force matters.
+
+## Sources
+
+1. Hogan, N. "Impedance Control: An Approach to Manipulation: Part I — Theory." *Journal of Dynamic Systems, Measurement, and Control* 107(1), 1985. [doi:10.1115/1.3140702](https://doi.org/10.1115/1.3140702)
+2. Albu-Schäffer, A., Ott, C. and Hirzinger, G. "A Unified Passivity-based Control Framework for Position, Torque and Impedance Control of Flexible Joint Robots." *International Journal of Robotics Research* 26(1), 2007. [doi:10.1177/0278364907073776](https://journals.sagepub.com/doi/10.1177/0278364907073776)
+3. Lynch, K. M. and Park, F. C. *Modern Robotics.* Cambridge University Press, 2017. Chapter 11. [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)

@@ -1,0 +1,16 @@
+---
+// Chaining transforms down a kinematic chain.
+import ArrowDef from '../components/ArrowDef.astro';
+const frames = ['World', 'Base', 'Shoulder', 'Elbow', 'Tool'];
+const labels = ['T_wb', 'T_bs', 'T_se', 'T_et'];
+const x = (i: number) => 16 + i * 142;
+---
+<svg class="fig" viewBox="0 0 720 150" role="img" aria-labelledby="tc-title tc-desc">
+  <title id="tc-title">Chaining transforms from the world to the tool</title>
+  <desc id="tc-desc">Five frames in a row: world, base, shoulder, elbow, tool. Each neighbouring pair is related by one transform. Multiplying the four transforms in order gives the pose of the tool in the world.</desc>
+  <defs><ArrowDef id="ah-tc" /></defs>
+  {frames.map((f, i) => <g><rect class={i === 0 ? 'box' : i === 4 ? 'soft3' : 'soft1'} x={x(i)} y="30" width="96" height="44" rx="10" /><text x={x(i) + 48} y="57" text-anchor="middle" class="t-strong">{f}</text></g>)}
+  {labels.map((l, i) => <g><line class="wire" x1={x(i) + 96} y1="52" x2={x(i + 1) - 1} y2="52" marker-end="url(#ah-tc)" /><text x={x(i) + 119} y="24" text-anchor="middle" class="t-small t-math">{l}</text></g>)}
+  <text x="360" y="112" text-anchor="middle" class="t-strong">T_wt = T_wb · T_bs · T_se · T_et</text>
+  <text x="360" y="134" text-anchor="middle" class="t-small t-muted">Subscripts cancel like units: the inner letters must match. Each joint angle changes exactly one of these.</text>
+</svg>

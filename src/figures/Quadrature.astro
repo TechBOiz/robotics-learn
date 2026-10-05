@@ -1,0 +1,18 @@
+---
+// Quadrature encoder signals.
+const X = (ph: number) => 90 + ph * 130; // ph in cycles
+const edges = Array.from({ length: 16 }, (_, i) => 0.25 + i * 0.25).filter((p) => X(p) < 610);
+const wave = (off: number, hiY: number, loY: number) => { let d = `M90 ${off > 0 ? loY : hiY}`; let hi = off <= 0; for (let e = off > 0 ? off : 0.5; X(e) < 610; e += 0.5) { d += ` H${X(e)} V${hi ? loY : hiY}`; hi = !hi; } return d + ' H610'; };
+---
+<svg class="fig" viewBox="0 0 680 236" role="img" aria-labelledby="qd-title qd-desc">
+  <title id="qd-title">Quadrature signals from an incremental encoder</title>
+  <desc id="qd-desc">Two square waves, A and B, a quarter cycle apart. Counting every rising and falling edge of both gives four counts per line. Which signal leads tells the direction of rotation.</desc>
+  <text x="60" y="62" text-anchor="end" class="t-strong t-c1">A</text><text x="60" y="132" text-anchor="end" class="t-strong t-c3">B</text>
+  <path class="c1 thick" d={wave(0, 40, 76)} />
+  <path class="c3 thick" d={wave(0.25, 110, 146)} />
+  {edges.map((p) => <line class="wire-muted dash" x1={X(p)} y1="30" x2={X(p)} y2="168" opacity="0.6" />)}
+  {edges.map((p, i) => <text x={X(p)} y="184" text-anchor="middle" class="t-small t-muted">{i + 1}</text>)}
+  <line class="wire-muted" x1={X(0.5)} y1="22" x2={X(1.5)} y2="22" /><text x={X(1)} y="16" text-anchor="middle" class="t-small">one line = four counts</text>
+  <text x="340" y="212" text-anchor="middle" class="t-small">Counting every edge of both channels. B lags A here; if B led, the shaft would be turning the other way.</text>
+  <text x="340" y="228" text-anchor="middle" class="t-small t-muted">An incremental encoder knows how far it has turned, not where it started.</text>
+</svg>

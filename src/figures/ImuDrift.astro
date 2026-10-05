@@ -1,0 +1,19 @@
+---
+// Position error from a constant accelerometer bias, integrated twice.
+const X = (t: number) => 80 + (t / 60) * 520;
+const Y = (m: number) => 250 - (m / 100) * 210;
+const curve = (b: number) => Array.from({ length: 61 }, (_, t) => t).filter((t) => 0.5 * b * t * t <= 100).map((t) => `${X(t).toFixed(1)},${Y(0.5 * b * t * t).toFixed(1)}`).join(' ');
+---
+<svg class="fig" viewBox="0 0 680 310" role="img" aria-labelledby="id-title id-desc">
+  <title id="id-title">Position error from a small accelerometer bias</title>
+  <desc id="id-desc">Position error grows with the square of time when a constant accelerometer bias is integrated twice. A bias of 0.01 metres per second squared, about one thousandth of gravity, gives 18 metres of error after one minute. A bias five times larger gives 90 metres.</desc>
+  {[0, 25, 50, 75, 100].map((m) => <g><line class="grid" x1="80" y1={Y(m)} x2="600" y2={Y(m)} /><text x="72" y={Y(m) + 4} text-anchor="end" class="t-small t-muted">{m}</text></g>)}
+  <polyline class="axis" points="80,30 80,250 606,250" />
+  <polyline class="c3 thick" points={curve(0.05)} /><polyline class="c1 thick" points={curve(0.01)} />
+  {[0, 15, 30, 45, 60].map((t) => <text x={X(t)} y="268" text-anchor="middle" class="t-small t-muted">{t}</text>)}
+  <text x="340" y="290" text-anchor="middle" class="t-muted">Time since last correction (s)</text>
+  <text x="24" y="140" transform="rotate(-90 24 140)" text-anchor="middle" class="t-muted">Position error (m)</text>
+  <text x={X(47)} y={Y(72)} text-anchor="end" class="t-small t-c3">bias 0.05 m/s² (≈ 5 mg)</text>
+  <text x={X(57)} y={Y(26)} text-anchor="end" class="t-small t-c1">bias 0.01 m/s² (≈ 1 mg)</text>
+  <text x="100" y="52" class="t-strong">error = ½ · bias · t²</text>
+</svg>

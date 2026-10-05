@@ -1,0 +1,25 @@
+---
+// Wheatstone bridge with a strain gauge.
+const zig = (x1: number, y1: number, x2: number, y2: number) => {
+  const n = 6, dx = (x2 - x1) / (n + 2), dy = (y2 - y1) / (n + 2), len = Math.hypot(x2 - x1, y2 - y1), px = (-(y2 - y1) / len) * 7, py = ((x2 - x1) / len) * 7;
+  let d = `M${x1} ${y1} L${x1 + dx} ${y1 + dy}`;
+  for (let i = 1; i <= n; i++) { const s = i % 2 ? 1 : -1; d += ` L${x1 + dx * (i + 0.5) + s * px} ${y1 + dy * (i + 0.5) + s * py}`; }
+  return d + ` L${x2 - dx} ${y2 - dy} L${x2} ${y2}`;
+};
+const T = [230, 40], R = [350, 130], Bm = [230, 220], L = [110, 130];
+---
+<svg class="fig" viewBox="0 0 680 270" role="img" aria-labelledby="wb-title wb-desc">
+  <title id="wb-title">A Wheatstone bridge reading a strain gauge</title>
+  <desc id="wb-desc">Four resistors form a diamond. A steady excitation voltage is applied top to bottom, and the output is measured between the left and right corners. With all four equal the output is zero. When strain changes the resistance of the gauge, the bridge unbalances and a small output voltage proportional to strain appears.</desc>
+  <path class="wire" d={zig(T[0], T[1], L[0], L[1])} /><path class="wire" d={zig(L[0], L[1], Bm[0], Bm[1])} /><path class="wire" d={zig(R[0], R[1], Bm[0], Bm[1])} />
+  <path class="c3 thick" d={zig(T[0], T[1], R[0], R[1])} />
+  {[T, R, Bm, L].map(([x, y]) => <circle class="ink-fill" cx={x} cy={y} r="4" />)}
+  <text x="322" y="58" class="t-small t-strong t-c3">strain gauge</text><text x="322" y="74" class="t-small t-c3">R + ΔR</text>
+  <text x="150" y="76" text-anchor="end" class="t-small">R</text><text x="150" y="196" text-anchor="end" class="t-small">R</text><text x="306" y="196" class="t-small">R</text>
+  <path class="wire-muted" d="M230 40 V18 H40 V242 H230 V220" /><text x="34" y="126" text-anchor="end" class="t-small" transform="rotate(-90 34 126)">excitation V</text>
+  <path class="c1" fill="none" stroke-width="1.6" d="M110 130 H190 M350 130 H270" /><rect class="soft1 c1" stroke-width="1.4" x="190" y="114" width="80" height="32" rx="6" /><text x="230" y="135" text-anchor="middle" class="t-small t-strong">output</text>
+  <text x="430" y="70" class="t-strong">Why a bridge?</text>
+  <text x="430" y="92" class="t-small">Strain changes resistance by only</text><text x="430" y="107" class="t-small">a fraction of a percent. The bridge</text><text x="430" y="122" class="t-small">cancels the large constant part and</text><text x="430" y="137" class="t-small">leaves a voltage proportional to ΔR.</text>
+  <text x="430" y="168" class="t-small">Using two or four active gauges</text><text x="430" y="183" class="t-small">multiplies the signal and cancels</text><text x="430" y="198" class="t-small">temperature drift.</text>
+  <text x="430" y="232" class="t-strong">output / V ≈ ¼ · GF · strain</text><text x="430" y="250" class="t-small t-muted">one active gauge; GF ≈ 2 for metal foil</text>
+</svg>

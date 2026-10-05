@@ -1,0 +1,102 @@
+---
+title: "Force, torque and touch"
+summary: "Position sensing tells a robot where it is; force sensing tells it what it is touching. Strain gauges, six-axis sensors, joint torque sensing and the tactile skins now appearing on robot hands."
+category: sensors
+order: 3
+level: intermediate
+updated: 2026-10-05
+tags: [sensors, force-torque, strain-gauge, tactile]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import Wheatstone from '../../../figures/Wheatstone.astro';
+import ForceSensingPoints from '../../../figures/ForceSensingPoints.astro';
+import TactileOptical from '../../../figures/TactileOptical.astro';
+
+A robot that only knows positions is blind to contact. It cannot tell a firm grasp from a crushed object, or a peg sliding into a hole from one jammed at the edge. **Force sensing** closes that gap, and how it is done shapes what a robot can safely touch.
+
+## The strain gauge
+
+Most force sensors do not measure force. They measure how much a piece of metal deforms under it.
+
+A **strain gauge** is a thin conductor bonded to a surface. When the surface stretches, the conductor gets longer and thinner, and its resistance rises:
+
+$$
+\frac{\Delta R}{R} = \text{GF}\cdot\varepsilon
+$$
+
+where $\varepsilon$ is strain and GF, the *gauge factor*, is about 2 for metal foil gauges. Usable strains are tiny, well under 0.1%, so the resistance change is a fraction of a percent. A **Wheatstone bridge** makes that measurable.
+
+<Figure number={1} caption="A bridge turns a tiny resistance change into a voltage centred on zero.">
+  <Wheatstone />
+</Figure>
+
+Everything downstream follows from this arrangement. The designer shapes a metal part — the *flexure* — so that the load of interest produces strain at the gauges, and other loads do not.
+
+Semiconductor gauges have gauge factors fifty times higher and allow stiffer sensors, at the cost of stronger temperature sensitivity. Capacitive and optical force sensors measure the flexure's deflection instead of its strain.
+
+## Six-axis force/torque sensors
+
+A rigid body can be pushed along three axes and twisted about three. A **six-axis force/torque sensor** measures all six with one flexure carrying many gauges. Each gauge responds to a mixture of loads; a 6×6 calibration matrix, found by applying known loads, untangles them.
+
+Mounted at the wrist, it measures everything the tool exchanges with the world. The specifications that matter:
+
+- **Range and resolution** on each axis. They trade against each other: a sensor stiff enough for large loads resolves small ones poorly.
+- **Crosstalk:** how much a load on one axis leaks into the reading of another.
+- **Overload capacity:** a collision can exceed the working range many times over. Good sensors have mechanical stops.
+- **Drift:** output wanders with temperature, so the sensor is zeroed ("tared") often.
+- **Stiffness:** the sensor is a compliant element in the arm, and lowers its resonant frequency.
+
+## Where to measure
+
+<Figure number={2} caption="Force can be sensed at several points along the arm. Each sees a different slice of the world.">
+  <ForceSensingPoints />
+</Figure>
+
+A sensor measures the total load passing through it — including the weight and inertia of every part of the robot beyond it.
+
+<Callout title="Proximal sensors need a model">
+A joint torque sensor in the shoulder feels the whole arm. To extract contact force from it, the controller must subtract what the arm's own gravity and motion contribute, using the [dynamics model](/dynamics/equations-of-motion/). Errors in that model appear as phantom forces. A fingertip sensor needs almost no such correction.
+</Callout>
+
+The options, from the base outward:
+
+- **Motor current.** Costs nothing extra. Accurate only when the transmission is transparent, which is the premise of [quasi-direct drive](/actuators/designing-a-quasi-direct-drive-actuator/).
+- **Joint torque sensors.** A strain-gauged element after each reducer. This is how torque-controlled collaborative arms detect contact anywhere on their surface, not only at the tool.
+- **Spring deflection.** In a [series elastic actuator](/actuators/designing-the-alternatives/), two encoders across a spring.
+- **Wrist force/torque sensor.** The standard retrofit for force-controlled assembly on a stiff industrial arm.
+- **Tactile sensors.** At the contact itself.
+
+## Touch
+
+A force/torque sensor reports one net force. **Tactile sensors** report how contact is distributed over a surface: where the object touches, how hard at each point, and whether it is starting to slip. This is what makes dexterous manipulation possible, and it is far less mature than vision.
+
+| Principle | How it works | Notes |
+|---|---|---|
+| **Resistive** | Conductive rubber whose resistance drops under pressure | Simple, cheap; drifts and has hysteresis |
+| **Capacitive** | Soft layer between electrode grids; pressure changes the gap | Sensitive; common in robot skins |
+| **Magnetic** | Magnet embedded in elastomer above a Hall sensor | Measures shear as well as pressure |
+| **Camera-based** | Camera watches a soft gel deform from inside | Very high spatial resolution |
+
+<Figure number={3} caption="A camera-based tactile sensor. The camera sees the contact geometry directly.">
+  <TactileOptical />
+</Figure>
+
+Camera-based sensors, of which [GelSight](https://doi.org/10.3390/s17122762) is the best-known family, turn touch into an image. Resolution is far beyond any electrode grid, and the output suits the same neural networks used for vision. The costs are bulk — a camera needs a focal distance — and a gel surface that wears.
+
+Shipping humanoids are starting to include tactile sensing: Figure, for example, states that each fingertip of its Figure 03 can detect forces as small as three grams ([company announcement, 2025](https://www.figure.ai/news/introducing-figure-03)).
+
+## Choosing
+
+- **Detecting collisions and guiding by hand:** joint torque sensing or transparent actuators, since contact may occur anywhere.
+- **Controlled contact at the tool — polishing, insertion, assembly:** a wrist force/torque sensor.
+- **Grasping fragile or unknown objects:** fingertip sensing, tactile if possible.
+- **Legged locomotion:** motor current is usually enough, sometimes with simple foot contact switches.
+
+In every case, a force sensor is only useful with a controller designed to act on it. See [impedance control](/control/impedance-control/).
+
+## Sources
+
+1. Yuan, W., Dong, S. and Adelson, E. H. "GelSight: High-Resolution Robot Tactile Sensors for Estimating Geometry and Force." *Sensors* 17(12), 2017. [doi:10.3390/s17122762](https://doi.org/10.3390/s17122762)
+2. Figure. "Introducing Figure 03." 9 October 2025. [figure.ai](https://www.figure.ai/news/introducing-figure-03)
+3. Siciliano, B. and Khatib, O. (eds.) *Springer Handbook of Robotics*, 2nd edition. Springer, 2016. Chapter on force and tactile sensing.

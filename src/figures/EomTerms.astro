@@ -1,0 +1,30 @@
+---
+// The manipulator equation, term by term.
+const terms = [
+  { x: 14, w: 126, sym: 'M(q) q̈', name: 'Inertia', sub: 'mass resisting', sub2: 'acceleration', cls: 'soft1' },
+  { x: 166, w: 126, sym: 'C(q, q̇) q̇', name: 'Velocity terms', sub: 'Coriolis and', sub2: 'centrifugal', cls: 'soft4' },
+  { x: 318, w: 110, sym: 'g(q)', name: 'Gravity', sub: 'weight of the', sub2: 'links', cls: 'soft2' },
+  { x: 458, w: 100, sym: 'τ', name: 'Actuators', sub: 'joint torques', sub2: 'you command', cls: 'soft3' },
+  { x: 588, w: 118, sym: 'Jᵀ F', name: 'Contact', sub: 'external forces', sub2: 'mapped to joints', cls: 'box' },
+];
+---
+<svg class="fig" viewBox="0 0 720 190" role="img" aria-labelledby="eo-title eo-desc">
+  <title id="eo-title">The terms of the manipulator equation</title>
+  <desc id="eo-desc">Inertia times acceleration, plus velocity-dependent Coriolis and centrifugal terms, plus gravity, equals joint torques from the actuators plus external contact forces mapped into joint space by the Jacobian transpose.</desc>
+  {terms.map((t) => (
+    <g>
+      <rect class={t.cls} x={t.x} y="24" width={t.w} height="58" rx="10" />
+      <text x={t.x + t.w / 2} y="61" text-anchor="middle" class="t-strong" style="font-size:19px">{t.sym}</text>
+      <text x={t.x + t.w / 2} y="110" text-anchor="middle" class="t-strong">{t.name}</text>
+      <text x={t.x + t.w / 2} y="128" text-anchor="middle" class="t-small t-muted">{t.sub}</text>
+      <text x={t.x + t.w / 2} y="143" text-anchor="middle" class="t-small t-muted">{t.sub2}</text>
+    </g>
+  ))}
+  <text x="153" y="60" text-anchor="middle" class="t-strong" style="font-size:19px">+</text>
+  <text x="305" y="60" text-anchor="middle" class="t-strong" style="font-size:19px">+</text>
+  <text x="443" y="60" text-anchor="middle" class="t-strong" style="font-size:19px">=</text>
+  <text x="573" y="60" text-anchor="middle" class="t-strong" style="font-size:19px">+</text>
+  <text x="225" y="176" text-anchor="middle" class="t-small">what the robot's own body demands</text>
+  <text x="582" y="176" text-anchor="middle" class="t-small">what pushes on it</text>
+  <line class="wire-muted" x1="14" y1="158" x2="428" y2="158" /><line class="wire-muted" x1="458" y1="158" x2="706" y2="158" />
+</svg>

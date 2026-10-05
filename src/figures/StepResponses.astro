@@ -1,0 +1,28 @@
+---
+// Step responses of a second-order system for three damping ratios.
+const X = (t: number) => 80 + (t / 12) * 540;
+const Y = (v: number) => 250 - v * 130;
+function resp(z: number) {
+  return Array.from({ length: 241 }, (_, i) => i * 0.05).map((t) => {
+    let y: number;
+    if (z < 1) { const wd = Math.sqrt(1 - z * z); y = 1 - Math.exp(-z * t) * (Math.cos(wd * t) + (z / wd) * Math.sin(wd * t)); }
+    else if (z === 1) y = 1 - Math.exp(-t) * (1 + t);
+    else { const s = Math.sqrt(z * z - 1), a = -z + s, b = -z - s; y = 1 + (b * Math.exp(a * t) - a * Math.exp(b * t)) / (a - b); }
+    return `${X(t).toFixed(1)},${Y(y).toFixed(1)}`;
+  }).join(' ');
+}
+---
+<svg class="fig" viewBox="0 0 680 310" role="img" aria-labelledby="sr-title sr-desc">
+  <title id="sr-title">Step responses for three levels of damping</title>
+  <desc id="sr-desc">Three responses to a step change in target. With too little damping the output overshoots by about half and oscillates several times. With critical damping it rises smoothly to the target as fast as possible without overshoot. With too much damping it creeps toward the target slowly.</desc>
+  <line class="grid" x1="80" y1={Y(0.5)} x2="620" y2={Y(0.5)} /><line class="grid" x1="80" y1={Y(1.5)} x2="620" y2={Y(1.5)} />
+  <line class="wire-muted dash" x1="80" y1={Y(1)} x2="620" y2={Y(1)} /><text x="624" y={Y(1) + 4} class="t-small t-muted">target</text>
+  <polyline class="axis" points="80,30 80,250 626,250" />
+  <polyline class="c3 thick" points={resp(0.2)} /><polyline class="c2 thick" points={resp(1)} /><polyline class="c1 thick" points={resp(2.5)} />
+  <text x={X(6.6)} y={Y(0.48)} class="t-small t-strong t-c3">under-damped (too little D): overshoots and rings</text>
+  <text x={X(6.6)} y={Y(0.18)} class="t-small t-strong t-c1">over-damped (too much D): safe but sluggish</text>
+  <text x={X(6.6)} y={Y(0.33)} class="t-small t-strong t-c2">critically damped: fastest without overshoot</text>
+  <text x="72" y={Y(0) + 4} text-anchor="end" class="t-small t-muted">0</text><text x="72" y={Y(1) + 4} text-anchor="end" class="t-small t-muted">1</text>
+  <text x="350" y="274" text-anchor="middle" class="t-muted">Time</text>
+  <text x="350" y="296" text-anchor="middle" class="t-small t-muted">Same stiffness in all three; only the damping differs.</text>
+</svg>

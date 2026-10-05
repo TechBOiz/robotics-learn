@@ -1,0 +1,107 @@
+---
+title: "Inertial measurement units"
+summary: "Gyroscopes and accelerometers tell a robot how it is rotating and what forces it feels — but not directly where it is. What an IMU really measures, why integrating it drifts, and how fusion fixes that."
+category: sensors
+order: 2
+level: intermediate
+updated: 2026-10-05
+tags: [sensors, imu, gyroscope, accelerometer, sensor-fusion]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import ImuDrift from '../../../figures/ImuDrift.astro';
+import ComplementaryFilter from '../../../figures/ComplementaryFilter.astro';
+
+A legged robot's [body has no encoder](/dynamics/equations-of-motion/). Nothing measures the angle between the torso and the world. The **inertial measurement unit** (IMU) fills that gap. It is a small chip containing three gyroscopes and three accelerometers, and it is the main reason a robot knows which way is up.
+
+## What it measures
+
+**Gyroscopes** measure angular velocity about three axes, in the sensor's own frame. A MEMS gyroscope does this with a tiny vibrating mass: rotation deflects the vibration sideways through the Coriolis effect, and that deflection is sensed.
+
+**Accelerometers** measure something subtler than acceleration. Each is in effect a small mass on a spring, and it reports the force needed to keep that mass moving with the sensor. This quantity is **specific force**:
+
+$$
+f = a - g
+$$
+
+where $a$ is true acceleration and $g$ is gravitational acceleration.
+
+<Callout title="An accelerometer at rest does not read zero">
+Sitting still on a table, $a = 0$ and the sensor reads $-g$: about 9.81 m/s² pointing *up*, because the table is pushing it up. In free fall it reads zero. An accelerometer cannot tell gravity from acceleration; it only ever sees the two combined.
+</Callout>
+
+This is both the IMU's most useful property and its main difficulty. At rest, the accelerometer reading points along gravity, which gives roll and pitch for free. In motion, it is contaminated by the robot's own acceleration.
+
+## Why integration drifts
+
+In principle the IMU gives everything: integrate the gyroscope for orientation, use it to rotate the accelerometer reading into the world frame, add gravity back, and integrate twice for position. This is **inertial navigation**, and it works only for a short time.
+
+Every sensor has a **bias**, a small constant offset, and integration turns a constant into something that grows.
+
+| Error source | Effect on orientation | Effect on position |
+|---|---|---|
+| Gyroscope bias $b_g$ | grows as $b_g\,t$ | grows as $\tfrac{1}{6}\,g\,b_g\,t^3$ |
+| Accelerometer bias $b_a$ | — | grows as $\tfrac{1}{2}\,b_a\,t^2$ |
+
+The cubic term is the dangerous one. A gyroscope bias tilts the orientation estimate; a tilted estimate means gravity is subtracted in slightly the wrong direction; that leftover component of gravity is then double-integrated as if it were real acceleration.
+
+<Figure number={1} caption="Double-integrating a constant bias. A bias of one thousandth of gravity costs 18 m in one minute.">
+  <ImuDrift />
+</Figure>
+
+On top of bias there is **noise**. Integrated gyroscope noise produces an orientation error that wanders randomly and grows with the square root of time, called angle random walk. Datasheets specify it in degrees per root-hour. Bias itself also changes slowly with temperature and time, which is why it cannot simply be calibrated out once.
+
+## Grades
+
+IMUs span several orders of magnitude in quality and price. The figures are rough orders of magnitude for gyroscope bias stability.
+
+| Grade | Typical gyro bias stability | Technology | Used in |
+|---|---|---|---|
+| Consumer | tens of °/h and up | MEMS | Phones, toys, low-cost robots |
+| Industrial | a few °/h | Better MEMS | Most mobile and legged robots, drones |
+| Tactical | around 1 °/h or below | High-end MEMS, fibre-optic | Survey equipment, some autonomous vehicles |
+| Navigation | around 0.01 °/h | Fibre-optic, ring-laser | Aircraft, ships |
+
+Robots almost always use MEMS units and rely on other sensors to correct them, because correcting is far cheaper than buying a better IMU.
+
+## Fusion: fixing drift with another sensor
+
+The pattern is always the same. The IMU is trusted over short times, where it is fast and smooth. A second, slower source with no drift is trusted over long times.
+
+For tilt, the second source is the accelerometer itself.
+
+<Figure number={2} caption="A complementary filter. The two sensors cover each other's weak frequency ranges.">
+  <ComplementaryFilter />
+</Figure>
+
+In its simplest form, with $\alpha$ slightly below 1:
+
+$$
+\hat\theta_k = \alpha\,(\hat\theta_{k-1} + \omega_k\,\Delta t) + (1-\alpha)\,\theta_{\text{acc},k}
+$$
+
+Each step mostly follows the integrated gyroscope, and is pulled gently toward the accelerometer's tilt. The filter assumes that over a long enough window the robot's own acceleration averages to zero — true for a walking robot, and false for a vehicle in a long turn.
+
+A **Kalman filter** does the same job more carefully: it tracks its own uncertainty, estimates the biases as extra states, and weights each measurement by how much it should be trusted at that moment. See [state estimation](/state-estimation/).
+
+### What gravity cannot fix
+
+Gravity is vertical, so it carries no information about rotation around the vertical axis. **Yaw drifts** however good the tilt estimate is. The options for correcting it:
+
+- **A magnetometer**, which senses the Earth's field. It is unreliable indoors and near motors, steel structures and high currents — which describes most robots.
+- **Vision or LiDAR**, which observe the surroundings directly.
+- **Kinematics**, for a legged robot: a foot planted on the ground does not rotate, which constrains how the body can have turned.
+
+Position needs an external reference in the same way: wheel or leg odometry, cameras, LiDAR or satellite positioning.
+
+## Using an IMU well
+
+- **Mount it rigidly, near the centre of mass.** Flex between the IMU and the body shows up as false rotation. Away from the centre, rotation itself produces acceleration that must be compensated.
+- **Mind vibration.** Motors and footfalls excite high-frequency vibration. If it exceeds the sensor's range or its sample rate it is folded into the signal as bias-like error. Soft mounting and adequate sample rates help.
+- **Calibrate.** Estimate gyroscope bias while stationary at start-up. Correct for scale factor, axis misalignment and temperature if the application needs it.
+- **Timestamp accurately.** Fusing an IMU with a camera or joint encoders requires knowing when each sample was taken to well under a millisecond.
+
+## Sources
+
+1. Woodman, O. J. *An introduction to inertial navigation.* University of Cambridge Computer Laboratory, Technical Report UCAM-CL-TR-696, 2007. [cl.cam.ac.uk](https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-696.pdf)
+2. Barfoot, T. D. *State Estimation for Robotics.* Cambridge University Press, 2017. Free copy from the author: [asrl.utias.utoronto.ca](https://asrl.utias.utoronto.ca/~tdb/bib/barfoot_ser17.pdf)

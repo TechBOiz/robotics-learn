@@ -1,0 +1,129 @@
+---
+title: "PID control, done properly"
+summary: "Three terms run most of the world's control loops. What each does, how to tune them on a joint, and the practical details — windup, derivative noise, feedforward — that separate a loop that works from one that merely runs."
+category: control
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [control, pid, feedback, tuning]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import PidBlock from '../../../figures/PidBlock.astro';
+import StepResponses from '../../../figures/StepResponses.astro';
+
+Feedback control is one idea: measure the result, compare it with what you wanted, and act on the difference. The **PID controller** is the most common way to turn that difference into an action. It is simple enough to write in ten lines, and most of its failures come from the ten lines people leave out.
+
+## The three terms
+
+<Figure number={1} caption="A PID loop. The dashed path is feedforward, covered below.">
+  <PidBlock />
+</Figure>
+
+With error $e = \text{target} - \text{measurement}$, the command is:
+
+$$
+u(t) = K_p\,e(t) + K_i\int_0^t e(\tau)\,d\tau + K_d\,\frac{de}{dt}
+$$
+
+- **Proportional** acts on the error *now*. Push harder the further off you are. On a joint it behaves like a spring pulling toward the target.
+- **Integral** acts on the error *accumulated so far*. If a small error persists, this term keeps growing until it is removed. It is what holds an arm exactly on target against gravity.
+- **Derivative** acts on the *trend*. If the error is shrinking fast, ease off before overshooting. On a joint it behaves like a damper.
+
+| Raising… | Rise time | Overshoot | Steady-state error | Sensitivity to noise |
+|---|---|---|---|---|
+| $K_p$ | faster | more | smaller | slightly more |
+| $K_i$ | slightly faster | more | eliminated | — |
+| $K_d$ | little change | less | no effect | much more |
+
+## A joint is a mass on a spring
+
+Position control of a joint with inertia $J$ under proportional and derivative gains obeys
+
+$$
+J\,\ddot\theta + K_d\,\dot\theta + K_p\,\theta = K_p\,\theta_{\text{target}}
+$$
+
+which is a mass–spring–damper. Its behaviour is set by two numbers:
+
+$$
+\omega_n = \sqrt{\frac{K_p}{J}}
+\qquad
+\zeta = \frac{K_d}{2\sqrt{K_p\,J}}
+$$
+
+The natural frequency $\omega_n$ says how fast the joint responds. The damping ratio $\zeta$ says how it settles.
+
+<Figure number={2} caption="The same stiffness with three damping ratios.">
+  <StepResponses />
+</Figure>
+
+This gives a tuning recipe with physical meaning. Choose $K_p$ for the stiffness or speed you need, then set
+
+$$
+K_d = 2\,\zeta\sqrt{K_p\,J}
+$$
+
+with $\zeta$ between about 0.7 and 1. Note that doubling stiffness needs only $\sqrt 2$ times the damping, and that the right gains depend on inertia — which, for a robot arm, [changes with pose](/dynamics/equations-of-motion/).
+
+## Details that decide whether it works
+
+### Integral windup
+
+Suppose the motor is at its torque limit and still cannot reach the target. The error persists, so the integral keeps growing — far beyond anything useful. When the target finally becomes reachable, that stored integral drives the output well past it before it can unwind.
+
+The fix is **anti-windup**: stop integrating, or bleed the integral down, whenever the output is saturated. A PID with an integral term and no anti-windup is unfinished.
+
+### Derivative noise and kick
+
+Differentiating a measured signal amplifies its noise; see the [quantisation problem](/sensors/encoders/) with encoders. Two standard remedies:
+
+- **Filter the derivative** with a low-pass filter, accepting a little delay.
+- **Differentiate the measurement, not the error.** When the target jumps, the error jumps, and its derivative is a spike that slams the actuator. The measurement cannot jump, so its derivative is well behaved.
+
+### Sample rate and delay
+
+A digital loop acts on old information: one sample period plus computation and communication time. Delay eats stability margin, and it is delay — more than anything else — that limits how high the gains can go. A rough rule is to sample at least ten to twenty times faster than the bandwidth you want from the loop.
+
+## Feedforward
+
+Feedback only acts after an error has appeared. If you already know what the target requires, apply it directly:
+
+$$
+u = \underbrace{u_{\text{ff}}(\text{target})}_{\text{from a model}} + \underbrace{\text{PID}(e)}_{\text{corrects the rest}}
+$$
+
+For a robot joint the feedforward is the torque predicted by [inverse dynamics](/dynamics/equations-of-motion/): gravity compensation at minimum, plus inertial terms for fast motion.
+
+<Callout title="Feedforward does the work; feedback fixes the errors">
+With a good feedforward the feedback gains can be much lower for the same tracking accuracy. Lower gains mean a softer, safer robot that is less sensitive to noise. This is the single most useful idea for moving beyond stiff PID.
+</Callout>
+
+## Cascaded loops
+
+A single PID from position error to motor voltage works poorly. Practical servo drives nest three loops:
+
+1. **Current loop** (innermost, fastest) — makes the motor a torque source. See [drive algorithms](/actuators/motor-drive-algorithms/).
+2. **Velocity loop** — commands current to hold a speed.
+3. **Position loop** (outermost, slowest) — commands velocity to reach a position.
+
+Each loop sees the one inside it as nearly ideal, provided the inner loop is several times faster. Each can be tuned alone, from the inside out, and each can limit its output — current, speed — which gives natural protection.
+
+## A tuning procedure
+
+1. Set $K_i = K_d = 0$. Raise $K_p$ until the response is brisk and starts to overshoot or oscillate.
+2. Add $K_d$ until the overshoot is acceptable. If the output turns noisy or the motor buzzes, filter the derivative or back off.
+3. Raise $K_p$ again if there is room, and repeat.
+4. Add a little $K_i$ only if a steady error remains, with anti-windup in place.
+5. Test with the largest and smallest load and at the extremes of the workspace.
+
+## Where PID runs out
+
+- **Coupled joints.** Each PID treats the others' motion as a disturbance. This is acceptable at high gear ratios, which mask the coupling, and poor for fast, low-ratio arms.
+- **Contact.** A stiff position loop pushing on a rigid surface produces enormous, uncontrolled force. That needs [impedance control](/control/impedance-control/).
+- **Constraints.** PID cannot plan around a torque limit or an obstacle. That needs [optimisation-based control](/control/lqr-and-mpc/).
+
+## Sources
+
+1. Åström, K. J. and Murray, R. M. *Feedback Systems: An Introduction for Scientists and Engineers.* Princeton University Press, 2nd edition, 2021. Free online: [fbswiki.org](https://fbswiki.org/wiki/index.php/Feedback_Systems:_An_Introduction_for_Scientists_and_Engineers)
+2. Lynch, K. M. and Park, F. C. *Modern Robotics.* Cambridge University Press, 2017. Chapter 11, "Robot Control". [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)

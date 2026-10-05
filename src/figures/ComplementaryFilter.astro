@@ -1,0 +1,24 @@
+---
+// Complementary filter for tilt.
+import ArrowDef from '../components/ArrowDef.astro';
+---
+<svg class="fig" viewBox="0 0 720 210" role="img" aria-labelledby="cf-title cf-desc">
+  <title id="cf-title">A complementary filter for tilt estimation</title>
+  <desc id="cf-desc">The gyroscope's rate is integrated to give an angle that is smooth but drifts; a high-pass filter keeps only its fast changes. The accelerometer gives the direction of gravity, which is noisy but does not drift; a low-pass filter keeps only its slow average. Adding the two gives an estimate that is both smooth and drift-free.</desc>
+  <defs><ArrowDef id="ah-cf" /></defs>
+  <rect class="soft1 c1" stroke-width="1.4" x="14" y="24" width="110" height="52" rx="8" /><text x="69" y="47" text-anchor="middle" class="t-strong">Gyroscope</text><text x="69" y="65" text-anchor="middle" class="t-small t-muted">angular rate</text>
+  <line class="wire" x1="124" y1="50" x2="152" y2="50" marker-end="url(#ah-cf)" />
+  <rect class="box" x="154" y="24" width="100" height="52" rx="8" /><text x="204" y="55" text-anchor="middle" class="t-strong">Integrate</text>
+  <line class="wire" x1="254" y1="50" x2="282" y2="50" marker-end="url(#ah-cf)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="284" y="24" width="130" height="52" rx="8" /><text x="349" y="47" text-anchor="middle" class="t-strong">High-pass</text><text x="349" y="65" text-anchor="middle" class="t-small t-muted">trust it short-term</text>
+  <rect class="soft3 c3" stroke-width="1.4" x="14" y="130" width="110" height="52" rx="8" /><text x="69" y="153" text-anchor="middle" class="t-strong">Accelerometer</text><text x="69" y="171" text-anchor="middle" class="t-small t-muted">specific force</text>
+  <line class="wire" x1="124" y1="156" x2="152" y2="156" marker-end="url(#ah-cf)" />
+  <rect class="box" x="154" y="130" width="100" height="52" rx="8" /><text x="204" y="153" text-anchor="middle" class="t-strong">Gravity</text><text x="204" y="171" text-anchor="middle" class="t-small t-muted">direction → tilt</text>
+  <line class="wire" x1="254" y1="156" x2="282" y2="156" marker-end="url(#ah-cf)" />
+  <rect class="soft4 c4" stroke-width="1.4" x="284" y="130" width="130" height="52" rx="8" /><text x="349" y="153" text-anchor="middle" class="t-strong">Low-pass</text><text x="349" y="171" text-anchor="middle" class="t-small t-muted">trust it long-term</text>
+  <path class="wire" d="M414 50 H470 V90" marker-end="url(#ah-cf)" /><path class="wire" d="M414 156 H470 V118" marker-end="url(#ah-cf)" />
+  <circle class="surface wire" cx="470" cy="104" r="13" /><text x="470" y="109" text-anchor="middle" class="t-strong">+</text>
+  <line class="wire" x1="483" y1="104" x2="528" y2="104" marker-end="url(#ah-cf)" />
+  <rect class="soft2 c2" stroke-width="1.4" x="530" y="74" width="176" height="60" rx="8" /><text x="618" y="100" text-anchor="middle" class="t-strong">Roll and pitch</text><text x="618" y="118" text-anchor="middle" class="t-small t-muted">smooth and drift-free</text>
+  <text x="618" y="166" text-anchor="middle" class="t-small t-muted">Yaw is not corrected:</text><text x="618" y="181" text-anchor="middle" class="t-small t-muted">gravity says nothing about heading.</text>
+</svg>

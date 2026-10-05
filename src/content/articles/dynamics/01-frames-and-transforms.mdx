@@ -1,0 +1,122 @@
+---
+title: "Frames, rotations and rigid-body transforms"
+summary: "Every quantity in robotics is expressed in some coordinate frame. How frames relate through rotations and transforms, how the common rotation representations differ, and the bookkeeping habits that prevent most bugs."
+category: dynamics
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [kinematics, frames, rotations, quaternions, transforms]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import Frames2D from '../../../figures/Frames2D.astro';
+import TransformChain from '../../../figures/TransformChain.astro';
+
+A camera sees an object 0.4 m in front of it. Where should the gripper go? The answer depends on where the camera is mounted, how the arm is posed, and where the robot is standing. Each of those is a relationship between **coordinate frames**, and nearly every computation in robotics starts by converting between them.
+
+## Frames
+
+A frame is an origin and three perpendicular axes. A robot has many: one fixed to the world, one on its base, one on each link, one at each sensor, one at the tool.
+
+A point in space has no coordinates on its own. It has coordinates *in a frame*, and they change when you change the frame.
+
+<Figure number={1} caption="The same point p, described in the world frame W and in a body frame B.">
+  <Frames2D />
+</Figure>
+
+A good habit is to write the frame into the symbol. Here ${}^{W}p$ means "p expressed in W".
+
+## Rotation matrices
+
+The orientation of frame B relative to frame W is a 3×3 matrix whose **columns are B's axes written in W's coordinates**:
+
+$$
+{}^{W}\!R_{B} = \begin{bmatrix} \hat x_B & \hat y_B & \hat z_B \end{bmatrix}
+$$
+
+It converts a direction from B's coordinates to W's: ${}^{W}v = {}^{W}\!R_{B}\,{}^{B}v$.
+
+Rotation matrices have three properties worth memorising:
+
+- **Orthonormal:** $R^{\mathsf T}R = I$ and $\det R = +1$.
+- **The inverse is the transpose:** ${}^{B}\!R_{W} = ({}^{W}\!R_{B})^{\mathsf T}$. No matrix inversion is ever needed.
+- **They chain by multiplication, and order matters:** ${}^{W}\!R_{C} = {}^{W}\!R_{B}\,{}^{B}\!R_{C}$. Rotating about x then y is not the same as y then x.
+
+## Four ways to write a rotation
+
+A rotation has three degrees of freedom, but no three-number description is free of problems. That is why several representations coexist.
+
+| Representation | Numbers | Strength | Weakness |
+|---|---|---|---|
+| **Rotation matrix** | 9 | No singularities; composes by multiplication | Redundant; drifts off orthonormal under numerical error |
+| **Euler angles** (roll, pitch, yaw) | 3 | Easy for people to read | Gimbal lock; many incompatible conventions |
+| **Axis–angle** (rotation vector) | 3 | Compact; natural for small rotations and for optimisation | Awkward to compose |
+| **Unit quaternion** | 4 | No gimbal lock; cheap to compose and interpolate | Not intuitive; $q$ and $-q$ are the same rotation |
+
+**Gimbal lock** is the failure of Euler angles at one particular pitch (±90° in the usual convention), where two of the three angles end up rotating about the same axis and one degree of freedom disappears from the description. The physical orientation is fine; the *coordinates* have broken.
+
+In practice: store and compute with quaternions or matrices, use rotation vectors inside optimisers and filters, and convert to Euler angles only to show a person.
+
+## Rigid-body transforms
+
+Orientation and position together make a **pose**. Stack them into one 4×4 matrix:
+
+$$
+{}^{W}T_{B} = \begin{bmatrix} {}^{W}\!R_{B} & {}^{W}t_{B} \\ 0\;\;0\;\;0 & 1 \end{bmatrix}
+$$
+
+Appending a 1 to a point lets the same matrix rotate and translate in one multiplication:
+
+$$
+\begin{bmatrix} {}^{W}p \\ 1 \end{bmatrix} = {}^{W}T_{B} \begin{bmatrix} {}^{B}p \\ 1 \end{bmatrix}
+\qquad\text{that is}\qquad
+{}^{W}p = R\,{}^{B}p + t
+$$
+
+Transforms chain exactly as rotations do, and the inverse has a closed form:
+
+$$
+{}^{W}T_{C} = {}^{W}T_{B}\;{}^{B}T_{C}
+\qquad
+T^{-1} = \begin{bmatrix} R^{\mathsf T} & -R^{\mathsf T}t \\ 0 & 1 \end{bmatrix}
+$$
+
+<Figure number={2} caption="A robot arm is a chain of transforms. Each joint angle is a parameter of one link in the chain.">
+  <TransformChain />
+</Figure>
+
+Now the opening question has an answer. The object's position in the base frame is
+
+$$
+{}^{\text{base}}p = {}^{\text{base}}T_{\text{tool}}\;{}^{\text{tool}}T_{\text{camera}}\;{}^{\text{camera}}p
+$$
+
+where the first transform comes from the arm's joint angles ([forward kinematics](/dynamics/kinematics-and-the-jacobian/)), the second from a one-time calibration of where the camera is mounted, and the third from the camera itself.
+
+## Velocities
+
+A moving rigid body has a linear velocity $v$ and an angular velocity $\omega$. Angular velocity is a true vector — unlike finite rotations, angular velocities add — and it relates to the rotation matrix by
+
+$$
+\dot R = [\omega]_{\times}\,R
+$$
+
+where $[\omega]_\times$ is the skew-symmetric matrix that performs a cross product. Note that $\omega$ is **not** the time derivative of the Euler angles; the two are related by a matrix that becomes singular at gimbal lock.
+
+## Bookkeeping that prevents bugs
+
+<Callout title="Most kinematics bugs are convention bugs">
+The mathematics above is rarely what goes wrong. What goes wrong is two pieces of code disagreeing about what the numbers mean.
+</Callout>
+
+- **Name both frames.** Call a variable `T_world_base`, never `T` or `pose`. Then `T_world_base * T_base_tool` visibly makes sense and `T_base_tool * T_world_base` visibly does not.
+- **Check quaternion order.** Some libraries store $(w, x, y, z)$, others $(x, y, z, w)$. Mixing them produces plausible-looking wrong rotations.
+- **Check the Euler convention.** "Roll, pitch, yaw" does not specify the axis order or whether axes are fixed or moving. ROS, for example, [defines it](https://www.ros.org/reps/rep-0103.html) as rotations about fixed X, Y, then Z axes.
+- **Know whether a transform moves points or relabels them.** The matrix that takes B's coordinates to W's is the inverse of the one that takes W's to B's. Decide once and write it down.
+- **Use right-handed frames and SI units** throughout, and convert at the boundary where data enters.
+- **Re-normalise** quaternions and re-orthonormalise matrices after long chains of updates.
+
+## Sources
+
+1. Lynch, K. M. and Park, F. C. *Modern Robotics: Mechanics, Planning, and Control.* Cambridge University Press, 2017. Chapter 3, "Rigid-Body Motions". Free preprint: [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)
+2. Foote, T. and Purvis, M. "REP 103: Standard Units of Measure and Coordinate Conventions." ROS Enhancement Proposals. [ros.org](https://www.ros.org/reps/rep-0103.html)
