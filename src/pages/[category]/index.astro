@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArticleList from '../../components/ArticleList.astro';
+import { categories } from '../../data/categories';
+import { getArticlesIn } from '../../lib/articles';
+import { href } from '../../lib/paths';
+
+export function getStaticPaths() {
+  return categories.map((category) => ({ params: { category: category.id }, props: { category } }));
+}
+
+const { category } = Astro.props;
+const articles = await getArticlesIn(category.id);
+---
+<Base title={category.name} description={category.blurb} section="topics">
+  <div class="container">
+    <header class="page-head">
+      <p class="kicker"><a href={href('/#topics')}>Topics</a></p>
+      <h1>{category.name}</h1>
+      <p class="lede">{category.blurb}</p>
+    </header>
+
+    {articles.length > 0 && (
+      <section class="panel" aria-label="Articles">
+        <ArticleList articles={articles} />
+      </section>
+    )}
+
+    <section class="section" aria-labelledby="planned">
+      <div class="panel">
+        <p class="kicker" id="planned">{articles.length > 0 ? 'Planned next' : 'No articles yet'}</p>
+        {articles.length === 0 && <p style="margin:0;color:var(--muted)">Nothing has been published in this topic. These are the articles queued for it:</p>}
+        <ul class="planned">
+          {category.planned.map((topic) => <li>{topic}</li>)}
+        </ul>
+      </div>
+    </section>
+  </div>
+</Base>

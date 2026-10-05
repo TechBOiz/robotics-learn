@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="About" section="about">
+  <div class="container">
+    <header class="page-head">
+      <p class="kicker">About</p>
+      <h1>Notes for people who build robots.</h1>
+      <p class="lede">
+        This is the learning side of Everything Robotics: a growing set of articles that explain one piece of a
+        robot at a time, in the order you would need them to understand a real machine.
+      </p>
+    </header>
+    <div class="prose" style="max-width: var(--measure)">
+      <h2>How the articles are written</h2>
+      <ul>
+        <li><strong>Reasoning first.</strong> Each article explains why a design exists and what it trades away, before any catalogue of parts.</li>
+        <li><strong>Sourced.</strong> Claims about a specific product, company or paper link to where they came from. Vendor-reported numbers are labelled as vendor-reported.</li>
+        <li><strong>Dated.</strong> Robotics hardware moves quickly. Every article shows when it was last updated, and "recent" always means "as of that date".</li>
+        <li><strong>Typical, not exact.</strong> Ranges such as gear ratios and efficiencies are typical engineering values. Check a datasheet before designing around them.</li>
+      </ul>
+      <h2>Topics</h2>
+      <p>
+        Articles are grouped into topics — actuators, dynamics, sensors, control, perception, learning and more.
+        A topic page lists what is published and what is planned, so an empty topic is visibly empty rather than
+        padded.
+      </p>
+      <h2>Corrections</h2>
+      <p>
+        If something is wrong or out of date, open an issue on the
+        <a href="https://github.com/TechBOiz/everything-robotics">GitHub repository</a> with the source that
+        shows the correct information.
+      </p>
+    </div>
+  </div>
+</Base>

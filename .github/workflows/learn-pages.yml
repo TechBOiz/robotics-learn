@@ -1,0 +1,63 @@
+# Use this version when the contents of learn-site/ are the ROOT of their own repository.
+# Copy it to .github/workflows/learn-pages.yml in that repository.
+name: Learn site (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: learn-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FALLBACK_SITE: https://${{ github.repository_owner }}.github.io
+  FALLBACK_BASE: /${{ github.event.repository.name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Read Pages settings
+        id: pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: ${{ steps.pages.outputs.origin || env.FALLBACK_SITE }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path || env.FALLBACK_BASE }}
+      - name: Check internal links
+        run: npm run check:links
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path || env.FALLBACK_BASE }}
+      - name: Upload site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

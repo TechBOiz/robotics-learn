@@ -1,0 +1,134 @@
+---
+title: "What an actuator is, and the numbers that describe one"
+summary: "An actuator turns stored energy into force and motion. Six numbers — torque, speed, power, density, bandwidth and backdrivability — explain almost every design decision that follows."
+category: actuators
+order: 1
+level: intro
+updated: 2026-10-05
+tags: [actuators, fundamentals, torque, gearing]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import TorqueSpeed from '../../../figures/TorqueSpeed.astro';
+
+A robot's controller can only ever ask for one thing: *push this joint this hard*. The **actuator** is the part that makes it happen. It takes energy from a battery, a pump or a compressor and turns it into force on a link.
+
+Everything a robot can physically do — how fast it moves, how much it lifts, whether it can catch itself when it trips, whether it is safe to stand next to — is bounded by its actuators. That is why actuator design is where most arguments about robot hardware end up.
+
+## The chain from energy to motion
+
+"Actuator" usually means the whole chain, not just the motor:
+
+1. **Energy source** — a battery, a hydraulic pump, an air supply.
+2. **Drive** — power electronics or valves that meter energy on command. For an electric motor this is an inverter running a current control loop.
+3. **Motor** — the element that converts energy into mechanical force: an electric motor, a hydraulic cylinder, a pneumatic muscle.
+4. **Transmission** — gears, screws, belts or cables that trade speed for force.
+5. **Sensors** — at minimum position; often current, torque and temperature.
+
+A design choice anywhere in this chain shows up in the others. A motor that produces more torque needs less gearing; less gearing changes what the sensors can see; and so on. Read an actuator as a system.
+
+## Torque, speed and power
+
+For a rotary joint the three basic quantities are torque $\tau$ (N·m), angular speed $\omega$ (rad/s) and mechanical power:
+
+$$
+P = \tau\,\omega
+$$
+
+For a linear actuator, swap in force $F$ and velocity $v$: $P = F\,v$.
+
+Power is the budget. A transmission can exchange torque for speed, but it cannot create power — it only loses a little to friction.
+
+### Where an electric motor's limits come from
+
+Most robots are driven by permanent-magnet electric motors, and two relationships govern them. Torque is proportional to current:
+
+$$
+\tau = K_t\, I
+$$
+
+and the voltage needed rises with speed, because a spinning motor generates its own opposing voltage (back-EMF):
+
+$$
+V = I R + K_e\,\omega
+$$
+
+These two lines produce the shape in Figure 1.
+
+- **The speed limit is electrical.** Once back-EMF approaches the supply voltage there is no voltage left to push current, so torque falls to zero at the *no-load speed*.
+- **The torque limit is thermal.** Current through winding resistance makes heat, $P_{\text{loss}} = I^2 R$. Since torque is proportional to current, *heat grows with the square of torque*. Double the torque, four times the heat.
+
+That second point is why every motor has two torque ratings. **Continuous torque** is what it can hold indefinitely without overheating. **Peak torque** is several times higher but only available for seconds, until the windings get hot.
+
+<Figure number={1} caption="The envelope of a motor alone (blue) and the same motor behind an N:1 gearbox (orange). Gearing does not enlarge the envelope's area — the power — it reshapes it.">
+  <TorqueSpeed />
+</Figure>
+
+<Callout title="Why it matters">
+A humanoid standing still with bent knees is holding torque at zero speed: no mechanical work, all heat. A jump needs peak torque for a fraction of a second. The same actuator is being judged against two very different limits.
+</Callout>
+
+## What a gearbox really does
+
+A motor on its own is fast and weak relative to what a joint needs. A reducer with ratio $N$ fixes that:
+
+$$
+\tau_{\text{out}} = N\,\eta\,\tau_m \qquad \omega_{\text{out}} = \frac{\omega_m}{N}
+$$
+
+where $\eta$ is the transmission efficiency. Torque goes up by $N$, speed down by $N$.
+
+The cost is less obvious, and it is the single most important idea in this series. Seen from the output, the motor's rotor appears $N^2$ times heavier:
+
+$$
+J_{\text{reflected}} = N^2 J_m
+$$
+
+A rotor that feels like nothing in your hand, behind a 100:1 gearbox, behaves like something **10,000 times** its inertia when the link is pushed from outside. Friction in the motor and gears is multiplied the same way.
+
+In practice this means a high-ratio joint:
+
+- **hits hard** — in a collision, that reflected inertia has to be stopped by the gear teeth,
+- **hides forces** — an external push is absorbed by friction before it reaches the motor, so motor current stops being a good estimate of joint torque,
+- **resists being moved** — it is not *backdrivable*.
+
+Low gear ratios avoid all three, but need a bigger motor to make the same torque. That tension — torque density against transparency — is what separates the actuator architectures in the [next article](/actuators/types-of-actuators/).
+
+## The six numbers
+
+When you read an actuator datasheet or a paper, these are the quantities to look for.
+
+| Metric | What it tells you | Typical unit |
+|---|---|---|
+| **Torque / force** | How hard it can push, continuously and at peak | N·m, N |
+| **Speed** | How fast the output moves at no load and under load | rad/s, rpm, m/s |
+| **Torque density** | Torque per unit mass — the key figure for anything that carries its own actuators | N·m/kg |
+| **Power density** | Power per unit mass — what limits explosive motion like jumping | W/kg |
+| **Bandwidth** | How quickly force or position can be changed — sets how stiff and how responsive control can be | Hz |
+| **Backdrivability** | How easily the output can be moved from outside — governs impact tolerance, safety and force sensing | reflected inertia, friction torque |
+
+Three more appear once you look closer:
+
+- **Efficiency** — how much input power becomes mechanical output. For a mobile robot it is run time.
+- **Stiffness and backlash** — how much the output deflects under load, and how much free play there is when direction reverses. These bound positioning accuracy.
+- **Motor constant** $K_m = K_t / \sqrt{R}$ — torque per square-root-watt of heat. It is the fairest way to compare two motors, because unlike $K_t$ it cannot be changed just by rewinding with different wire.
+
+<Callout title="Caution" tone="caution">
+Torque density figures are only comparable when they describe the same thing. Check whether a quoted number is peak or continuous, and whether the mass includes the gearbox, housing, drive electronics and cooling. A motor-only peak figure and a whole-module continuous figure can differ by an order of magnitude for the same hardware.
+</Callout>
+
+## No actuator wins on everything
+
+Each of the six numbers can be improved, but not all at once:
+
+- More gearing raises torque density and lowers backdrivability and efficiency.
+- A larger-diameter motor raises torque without gearing, at the cost of mass and packaging.
+- Adding a spring protects the gearbox and gives clean force sensing, and lowers bandwidth.
+- Hydraulics deliver extreme force density at the joint, and move the mass, noise and losses to a pump.
+
+Robot actuator design is choosing which of these to give up for a particular job. An industrial arm that must repeat a weld to a fraction of a millimetre makes a different choice from a quadruped that must survive landing a jump — and the rest of this series is about those choices.
+
+## Sources
+
+1. Lynch, K. M. and Park, F. C. *Modern Robotics: Mechanics, Planning, and Control.* Cambridge University Press, 2017. Free preprint: [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics) — see the chapter on robot control for motor and gearing models.
+2. Wensing, P. M. et al. "Proprioceptive Actuator Design in the MIT Cheetah: Impact Mitigation and High-Bandwidth Physical Interaction for Dynamic Legged Robots." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183) — the clearest treatment of reflected inertia and why it matters.

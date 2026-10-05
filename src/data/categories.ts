@@ -1,0 +1,104 @@
+export interface Category {
+  id: string;
+  name: string;
+  blurb: string;
+  /** Matching id in data/taxonomy/domains.yaml at the repository root. */
+  domain: string;
+  /** Topics queued for this category. Shown until articles exist. */
+  planned: string[];
+}
+
+export const categories: Category[] = [
+  {
+    id: 'actuators',
+    name: 'Actuators & Drives',
+    blurb: 'How robots turn electrical, fluid and chemical energy into force and motion.',
+    domain: 'embedded-mechatronics',
+    planned: ['Motor drives and field-oriented control', 'Thermal limits and duty cycles', 'Sizing an actuator for a joint'],
+  },
+  {
+    id: 'dynamics',
+    name: 'Kinematics & Dynamics',
+    blurb: 'Frames, Jacobians and the equations of motion that every controller leans on.',
+    domain: 'mechanics',
+    planned: ['Rigid-body transforms', 'Forward and inverse kinematics', 'The manipulator equation', 'Floating-base dynamics'],
+  },
+  {
+    id: 'sensors',
+    name: 'Sensors',
+    blurb: 'Encoders, IMUs, force/torque sensing, tactile skins, cameras and LiDAR.',
+    domain: 'embedded-mechatronics',
+    planned: ['Encoders and resolvers', 'IMUs', 'Force/torque and joint torque sensing', 'Tactile sensing', 'Depth cameras and LiDAR'],
+  },
+  {
+    id: 'control',
+    name: 'Control',
+    blurb: 'From PID to impedance control, model-predictive control and whole-body control.',
+    domain: 'control',
+    planned: ['PID done properly', 'Impedance and admittance control', 'LQR and MPC', 'Whole-body control'],
+  },
+  {
+    id: 'computer-vision',
+    name: 'Computer Vision',
+    blurb: 'Camera models, features, 3D vision and the learned perception stack.',
+    domain: 'computer-vision',
+    planned: ['Camera models and calibration', 'Stereo and depth', 'Detection and segmentation', '6D pose estimation'],
+  },
+  {
+    id: 'state-estimation',
+    name: 'SLAM & State Estimation',
+    blurb: 'Bayes filters, sensor fusion and building maps while moving through them.',
+    domain: 'slam-estimation',
+    planned: ['Kalman filters', 'Legged and wheeled odometry', 'Visual-inertial odometry', 'Factor graphs'],
+  },
+  {
+    id: 'planning',
+    name: 'Motion Planning',
+    blurb: 'Sampling, search and optimization for getting from here to there without collisions.',
+    domain: 'planning',
+    planned: ['Configuration space', 'RRT and PRM', 'Trajectory optimization', 'Task and motion planning'],
+  },
+  {
+    id: 'machine-learning',
+    name: 'Machine Learning',
+    blurb: 'The ML and deep-learning foundations that robot learning is built on.',
+    domain: 'deep-learning',
+    planned: ['Supervised learning for robotics', 'Reinforcement learning', 'Imitation learning', 'Sim-to-real transfer'],
+  },
+  {
+    id: 'vla',
+    name: 'VLA & Robot Foundation Models',
+    blurb: 'Vision-language-action models and generalist robot policies.',
+    domain: 'vla',
+    planned: ['What a VLA is', 'Action tokenization and action heads', 'Diffusion and flow policies', 'Robot data and teleoperation'],
+  },
+  {
+    id: 'manipulation',
+    name: 'Manipulation & Hands',
+    blurb: 'Grasping, contact, dexterous hands and end-of-arm tooling.',
+    domain: 'manipulation',
+    planned: ['Grasp mechanics', 'Dexterous hand designs', 'Contact-rich control'],
+  },
+  {
+    id: 'simulation',
+    name: 'Simulation & Tooling',
+    blurb: 'ROS 2, physics simulators and the software that holds a robot together.',
+    domain: 'tooling-sim',
+    planned: ['ROS 2 concepts', 'Physics engines compared', 'URDF, MJCF and USD'],
+  },
+  {
+    id: 'safety',
+    name: 'Safety & Standards',
+    blurb: 'Functional safety, risk assessment and the standards industrial robots ship against.',
+    domain: 'safety-standards',
+    planned: ['Risk assessment basics', 'ISO 10218 and collaborative operation', 'Safety-rated motion and stopping'],
+  },
+];
+
+export const categoryIds = categories.map((c) => c.id) as [string, ...string[]];
+
+export function getCategory(id: string): Category {
+  const found = categories.find((c) => c.id === id);
+  if (!found) throw new Error(`Unknown category: ${id}`);
+  return found;
+}

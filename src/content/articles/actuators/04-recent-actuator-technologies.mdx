@@ -1,0 +1,112 @@
+---
+title: "Recent actuator technologies"
+summary: "What changed in robot actuation over the last decade: proprioceptive drives, the move from hydraulics to electric, roller-screw legs, tendon-driven hands, new motor topologies and artificial muscles — as of October 2026."
+category: actuators
+order: 4
+level: intermediate
+updated: 2026-10-05
+tags: [actuators, humanoids, quasi-direct-drive, roller-screw, artificial-muscles, axial-flux]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import ActuatorTimeline from '../../../figures/ActuatorTimeline.astro';
+
+For most of robotics' history, the actuator was a solved problem with a standard answer: a servo motor and a high-ratio precision gearbox, bolted to the floor. Robots that walk, get knocked over and work next to people broke that answer, and the humanoid build-out of the 2020s turned actuator design into a manufacturing race.
+
+This article covers the developments worth knowing. It assumes the vocabulary from [types of actuators](/actuators/types-of-actuators/) and [transmissions](/actuators/transmissions/).
+
+<Callout title="How to read this article" tone="caution">
+Performance figures for commercial robots come from the companies that make them and are rarely independently measured. They are quoted here with their source and date, as claims.
+</Callout>
+
+<Figure number={1} caption="Milestones referenced in this article. Blue marks research results, orange marks products. Spacing is not to scale.">
+  <ActuatorTimeline />
+</Figure>
+
+## 1. Proprioceptive actuation became the default for legs
+
+The most influential actuator idea of the last decade is to use *less* gearing. The MIT Cheetah team argued that a legged robot's actuator should be judged by how well it handles impact, and built joints from large-diameter, high-torque motors with a single low-ratio planetary stage. [Wensing and colleagues formalised this in 2017](https://doi.org/10.1109/TRO.2016.2640183), introducing an *impact mitigation factor* to quantify how much an actuator's reflected inertia worsens a collision.
+
+With so little gearing, the joint is transparent: the controller can read contact forces from motor current and command torque at high bandwidth, with no force sensor in the leg. That transparency is also what makes these robots good hosts for reinforcement-learned controllers, which generally output joint torques or position targets with low gains and depend on the hardware doing what the simulator says it will.
+
+The recipe is now mainstream. Unitree's G1 humanoid, for example, is documented as using in-house joint motors with a hollow shaft and dual encoders, with a maximum joint torque of 120 N·m, in a robot offered with 23 to 43 degrees of freedom ([distributor documentation](https://docs.quadruped.de/projects/g1/html/g1_overview.html)).
+
+## 2. Hydraulics gave way to electric
+
+Hydraulic actuation was long the only way to get enough power density for dynamic humanoid motion. Boston Dynamics retired its hydraulic Atlas in April 2024 and [introduced an all-electric successor the next day](https://spectrum.ieee.org/atlas-humanoid-robot), stating it would be stronger and have a broader range of motion than any previous generation. Without hoses to route, its joints can rotate well beyond human limits.
+
+The production version followed at CES in January 2026. As [reported by the Association for Advancing Automation](https://www.automate.org/robotics/industry-insights/boston-dynamics-to-begin-production-on-redesigned-atlas-humanoid-in-2026), it has a stated 66 lb payload, a four-hour battery that can be swapped in about three minutes, an IP67 rating, and actuators supplied by Hyundai Mobis, with first deployments at Hyundai's Robotics Metaplant Application Center and Google DeepMind.
+
+The lesson is not that hydraulics are obsolete — they remain unmatched for heavy machinery — but that electric motors, magnets and power electronics improved enough to close the gap for human-scale robots, without the pump, the plumbing and the leaks.
+
+## 3. Linear roller-screw actuators for humanoid legs
+
+When Tesla showed its Optimus actuators in 2022, roboticists reviewing the design for [IEEE Spectrum](https://spectrum.ieee.org/robotics-experts-tesla-bot-optimus) noted two classes: rotary actuators with integrated strain wave gearing, and linear actuators built around an **inverted planetary roller screw**, with the screw-driven units in the legs.
+
+The reasoning follows from [how roller screws work](/actuators/transmissions/): threaded rollers give far more contact area than the balls of a ball screw, so the actuator carries higher loads and survives the repeated shock of footfalls. Mounted along a thigh or shin and acting through a linkage, a slim linear actuator delivers the high forces that knees and ankles need, and keeps mass close to the hip.
+
+The drawback is cost and manufacturing difficulty — precision-ground roller screws are expensive to make — which is one reason the component has become a focus for suppliers.
+
+## 4. Actuators became a product, and a supply chain
+
+A humanoid needs dozens of actuators, and they dominate its bill of materials. One industry estimate reported by [The Korea Herald in January 2026](https://www.koreaherald.com/article/10655508) puts actuators at 60 to 70 percent of a humanoid's manufacturing cost.
+
+That has pulled established motion and automotive suppliers into the market with standardised, integrated joint modules:
+
+- **Schaeffler** showed a planetary-gear actuator for humanoids in a 60 to 250 N·m range, integrating a two-stage planetary gearbox, motor, encoder and controller in one unit ([Robotics & Automation News, December 2025](https://roboticsandautomationnews.com/2025/12/30/schaeffler-presents-innovative-planetary-gear-actuator-for-humanoid-robots/97939/)).
+- **Hyundai Mobis** supplies the actuators for the production Atlas.
+- **LG Electronics** announced an actuator brand, Axium, at CES 2026, and **Samsung Electro-Mechanics** invested in the motor maker Alva Industries, per the same Korea Herald report.
+
+Robot makers are meanwhile redesigning for volume. Figure says its [Figure 03](https://www.figure.ai/news/introducing-figure-03) moved from CNC-machined parts to die-casting, injection moulding and stamping, with actuators it describes as twice as fast with improved torque density.
+
+The technical consequence is consolidation around a few module types: planetary quasi-direct-drive for dynamic joints, strain wave or cycloidal modules where precision matters, and roller-screw linear actuators for high-force leg joints.
+
+## 5. Hands moved to tendons
+
+Hands are the hardest actuation problem on a humanoid: twenty or more degrees of freedom in a space with no room for twenty motors. The trend is to copy human anatomy — put the actuators in the forearm and run tendons to the fingers.
+
+- Tesla's Optimus hand went from 11 degrees of freedom to 22 in its 2024 revision, according to the [robot's Wikipedia summary](https://en.wikipedia.org/wiki/Optimus_(robot)) of Tesla's statements.
+- 1X describes its NEO home robot as built on a patented [Tendon Drive](https://www.1x.tech/discover/neo-home-robot) with 22-degree-of-freedom hands, and presents the compliance of tendon actuation as a safety feature for a robot that shares a home with people.
+
+Sensing is advancing alongside. Figure states that each Figure 03 fingertip sensor can detect forces as small as three grams, and that each palm carries a camera for close-range feedback when the head cameras are blocked.
+
+## 6. New motor topologies
+
+Most robot motors are *radial-flux*: the magnetic field crosses a cylindrical air gap. **Axial-flux** motors turn this sideways, with disc-shaped rotors and stators facing each other along the shaft. The geometry is flat and puts the torque-producing surface at a large radius, which suits a joint that is wide but must be thin.
+
+A second idea is to replace wound copper coils with **printed-circuit-board stators**, where the windings are copper traces. One 2025 preprint reported a PCB axial-flux motor only 19 mm in diameter and 5 mm thick, reaching 45% copper fill using a 48-layer stator, aimed at quasi-direct-drive joints in very small robots ([Wang et al., arXiv:2509.23561](https://arxiv.org/abs/2509.23561)).
+
+These are promising rather than proven at scale. Axial-flux machines are sensitive to air-gap tolerances and harder to cool, and most shipping robots still use radial-flux frameless motors.
+
+## 7. Artificial muscles
+
+The furthest departure from the motor-and-gearbox template is to build actuators that behave like muscle: soft, contractile and distributed.
+
+**HASEL actuators** — hydraulically amplified self-healing electrostatic actuators — use electrostatic force between flexible electrodes to squeeze a liquid dielectric inside a pouch, changing its shape. [Acome and colleagues introduced them in *Science* in 2018](https://doi.org/10.1126/science.aao6139), reporting muscle-like performance and the ability to recover from electrical breakdown because the dielectric is a liquid.
+
+**Fluidic muscle robots** scale up the McKibben idea. Clone Robotics' Protoclone, shown in February 2025, is a musculoskeletal android with more than 1,000 "Myofiber" artificial muscles and over 200 degrees of freedom, driven by a 500-watt electric pump circulating hydraulic fluid ([New Atlas](https://newatlas.com/robotics/clone-robotics-video-humanoid-robot/)).
+
+Artificial muscles offer compliance and anatomical packaging that motors cannot. They remain well behind electric actuators in efficiency, controllability and demonstrated useful work, and none has yet been shown doing sustained practical tasks.
+
+## What to watch
+
+- **Cost per joint.** Whether roller screws and precision reducers can be made cheaply enough decides which architectures survive.
+- **Thermal performance.** Peak torque sells; continuous torque determines what a robot can do over a full shift.
+- **Integrated sensing.** Torque sensing built into the reducer or bearing, and denser tactile sensing in hands.
+- **Durability data.** Published life-cycle results for humanoid actuators are still scarce.
+
+## Sources
+
+1. Wensing, P. M., Wang, A., Seok, S., Otten, D., Lang, J. and Kim, S. "Proprioceptive Actuator Design in the MIT Cheetah: Impact Mitigation and High-Bandwidth Physical Interaction for Dynamic Legged Robots." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183)
+2. QUADRUPED Robotics. "Unitree G1 overview." [docs.quadruped.de](https://docs.quadruped.de/projects/g1/html/g1_overview.html)
+3. "Hello, Electric Atlas." *IEEE Spectrum*, 17 April 2024. [spectrum.ieee.org](https://spectrum.ieee.org/atlas-humanoid-robot)
+4. Association for Advancing Automation. "CES 2026: Boston Dynamics Set to Ship First Atlas Humanoids This Year." 5 January 2026. [automate.org](https://www.automate.org/robotics/industry-insights/boston-dynamics-to-begin-production-on-redesigned-atlas-humanoid-in-2026)
+5. "What Robotics Experts Think of Tesla's Optimus Robot." *IEEE Spectrum*, October 2022. [spectrum.ieee.org](https://spectrum.ieee.org/robotics-experts-tesla-bot-optimus)
+6. "After CES spotlight, Korean firms pivot to humanoid actuators." *The Korea Herald*, 14 January 2026. [koreaherald.com](https://www.koreaherald.com/article/10655508)
+7. "Schaeffler unveils innovative planetary gear actuator for humanoid robots." *Robotics & Automation News*, 30 December 2025. [roboticsandautomationnews.com](https://roboticsandautomationnews.com/2025/12/30/schaeffler-presents-innovative-planetary-gear-actuator-for-humanoid-robots/97939/)
+8. Figure. "Introducing Figure 03." 9 October 2025. [figure.ai](https://www.figure.ai/news/introducing-figure-03)
+9. "Optimus (robot)." Wikipedia. [en.wikipedia.org/wiki/Optimus_(robot)](https://en.wikipedia.org/wiki/Optimus_(robot))
+10. 1X Technologies. "NEO Home Robot." 28 October 2025. [1x.tech](https://www.1x.tech/discover/neo-home-robot)
+11. Wang, J. et al. "High Torque Density PCB Axial Flux Permanent Magnet Motor for Micro Robots." arXiv:2509.23561, 2025. [arxiv.org](https://arxiv.org/abs/2509.23561)
+12. Acome, E. et al. "Hydraulically amplified self-healing electrostatic actuators with muscle-like performance." *Science* 359, 2018. [doi:10.1126/science.aao6139](https://doi.org/10.1126/science.aao6139)
+13. "Clone Robotics releases eerie video of twitching, kicking humanoid robot." *New Atlas*, 20 February 2025. [newatlas.com](https://newatlas.com/robotics/clone-robotics-video-humanoid-robot/)

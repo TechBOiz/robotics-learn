@@ -1,0 +1,133 @@
+---
+title: "Types of actuators"
+summary: "Two questions sort every robot actuator: where does the force come from, and how is it delivered to the joint? A map of the families, what each is good at, and where you will find it."
+category: actuators
+order: 2
+level: intro
+updated: 2026-10-05
+tags: [actuators, motors, hydraulics, pneumatics, series-elastic, quasi-direct-drive]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import ActuatorFamilies from '../../../figures/ActuatorFamilies.astro';
+import GearRatioTradeoff from '../../../figures/GearRatioTradeoff.astro';
+
+Lists of actuator types tend to mix two different things. "Brushless motor" and "hydraulic cylinder" describe **where the force comes from**. "Series elastic" and "quasi-direct drive" describe **how that force is delivered to the joint**. A real actuator is one choice from each list — for example, a brushless motor (source) in a quasi-direct-drive arrangement (architecture).
+
+This article takes the two lists in turn.
+
+## Part 1 — Where the force comes from
+
+<Figure number={1} caption="Actuator families grouped by the physical effect that produces force.">
+  <ActuatorFamilies />
+</Figure>
+
+### Electromagnetic
+
+Current-carrying wire in a magnetic field feels a force. Almost every robot built today is driven this way, because electricity is easy to store, route and control.
+
+**Brushed DC motors** switch current between windings mechanically, with carbon brushes rubbing on a commutator. They run from a plain DC voltage, which makes them cheap and simple. The brushes wear, spark and limit speed, so they are now mostly found in toys, low-cost servos and small mechanisms.
+
+**Brushless motors (BLDC / PMSM)** move the magnets to the rotor and switch the stator windings electronically. That needs an inverter and a measurement of rotor angle, but removes the wearing parts and gets heat out more easily, since the windings sit on the outside against the housing. This is the default motor for robot joints. A few terms describe how one is built:
+
+- **Inrunner / outrunner** — whether the rotor spins inside the stator or around it. An outrunner puts the magnets at a larger radius, which gives more torque for the same diameter.
+- **Frameless** — sold as a bare stator and rotor ring with no housing, shaft or bearings, so it can be built directly into a joint.
+- **Radial flux / axial flux** — whether the magnetic field crosses the air gap radially (a cylinder) or along the axis (a disc). Axial-flux machines are flat and are covered in [recent technologies](/actuators/recent-actuator-technologies/).
+
+**Stepper motors** move in fixed angular steps and can hold position without feedback. That is ideal for 3D printers and small positioning stages. They are heavy for their torque and lose torque quickly with speed, so they are rare in dynamic robot joints.
+
+**Voice coils and linear motors** produce straight-line force directly, with no screw or gear. A voice coil has a short stroke and force exactly proportional to current, which suits haptics and precision stages. Linear motors stretch the same idea along a track for gantries and conveyance.
+
+### Fluid power
+
+**Hydraulic actuators** push incompressible oil into a cylinder or rotary chamber. Pressure is high, so the actuator at the joint is very small for the force it makes, and it tolerates shock well. The price is paid elsewhere: a pump, hoses, valves, heat, noise and the possibility of leaks. Hydraulics dominate excavators and heavy machinery, and powered Boston Dynamics' original Atlas, [which had 28 hydraulically actuated degrees of freedom](https://en.wikipedia.org/wiki/Atlas_(robot)) before it was retired in 2024.
+
+**Pneumatic actuators** use compressed air. Air is compressible, so pneumatics are naturally springy, fast and cheap — the standard way to open and close a gripper or push a part on a production line. The same compressibility makes precise position control difficult.
+
+**Fluidic muscles** (McKibben muscles) are a rubber tube inside a braided mesh. Pressurise the tube and it bulges outward, and the mesh converts that into a lengthwise contraction, like a muscle. They are light and compliant, and can be driven by air or by liquid.
+
+### Active materials
+
+Here the material itself is the actuator. None of these has displaced motors in mainstream robots, but each fills a niche, and they are where "artificial muscle" research happens.
+
+| Type | How it moves | Strength | Limitation |
+|---|---|---|---|
+| **Piezoelectric** | Crystal changes length under voltage | Very fast, precise, strong | Stroke of micrometres; needs amplification |
+| **Shape-memory alloy** | Wire contracts when heated past a transition temperature | High force for its weight, silent | Slow to cool, inefficient, fatigues |
+| **Dielectric elastomer** | Rubber film squeezed between charged electrodes | Large strain, soft | Kilovolt drive, prone to electrical breakdown |
+| **Electrohydraulic (HASEL)** | Electrostatic force pushes liquid inside a flexible pouch | Fast, muscle-like, self-healing dielectric | High voltage, still early |
+| **Twisted / coiled polymer** | Coiled fibre contracts when heated | Extremely cheap material | Thermal, so slow and inefficient |
+
+## Part 2 — How the force reaches the joint
+
+Because nearly all robots use brushless motors, the more consequential choice is the architecture around the motor. From the [previous article](/actuators/actuator-fundamentals/): gearing multiplies torque by $N$ but multiplies the rotor's apparent inertia by $N^2$. Each architecture below is a different answer to that trade.
+
+<Figure number={2} caption="Why architecture matters. On log axes, torque gained from gearing rises with N while reflected inertia rises with N². Typical gear-ratio ranges for three architectures are shaded.">
+  <GearRatioTradeoff />
+</Figure>
+
+### High-ratio geared (stiff) actuators
+
+A small, fast motor behind a large reduction — typically a strain wave or cycloidal gear at somewhere between 50:1 and 160:1. This gives the best torque for its mass and a stiff, precise output. It is how industrial arms and most collaborative arms are built.
+
+The output is hard to backdrive and the gears take the full shock of any impact. To control force, these joints usually add a **joint torque sensor** after the gearbox.
+
+### Direct drive
+
+No gearbox at all: a large-diameter motor is bolted straight to the link. There is no backlash, almost no friction, and motor current is an honest measure of joint torque. The motor has to be big and heavy to make useful torque, so direct drive suits fixed machines — some SCARA arms, haptic devices, precision stages — more than limbs that must carry their own actuators.
+
+### Quasi-direct drive (proprioceptive)
+
+A compromise: a large-radius, high-torque motor with a **single low-ratio stage**, usually a planetary gear of roughly 5:1 to 10:1. The joint stays backdrivable enough that torque can be estimated from motor current alone, without a separate sensor — hence *proprioceptive*. It also survives impacts, because there is little reflected inertia to arrest.
+
+This design was established by the MIT Cheetah work and is now standard in quadrupeds and common in humanoids.
+
+### Series elastic actuators
+
+Place a spring deliberately between the gearbox and the load. Measuring how far the spring deflects gives a clean force measurement, the spring shields the gears from shock, and it can store and return energy during a stride. [Pratt and Williamson introduced the idea in 1995](https://doi.org/10.1109/IROS.1995.525827).
+
+The spring also limits how quickly force can change, so bandwidth is lower than in a stiff or quasi-direct-drive joint. **Variable stiffness actuators** extend the idea with a second motor that adjusts the spring rate.
+
+### Linear screw actuators
+
+Instead of a rotary gearbox at the joint, the motor turns a screw that pushes a rod, and the rod drives the joint through a linkage — the way a muscle pulls on a bone. Screws produce very large forces in a slim package that fits along a thigh or shin. They appear in humanoid legs and are covered in [transmissions](/actuators/transmissions/).
+
+### Tendon and cable drives
+
+Motors sit away from the joint — in a forearm or torso — and pull on cables routed to it. This keeps the moving parts light and slim, which matters most in hands, where there is no room for a motor at each knuckle. Cables stretch, wear and add friction, and routing them is a design problem of its own.
+
+## Comparison at a glance
+
+| Architecture | Torque density | Backdrivable | Force sensing | Impact tolerance | Typical use |
+|---|---|---|---|---|---|
+| High-ratio geared | High | Poor | Needs torque sensor | Low | Industrial and collaborative arms |
+| Direct drive | Low | Excellent | From motor current | High | Haptics, precision stages |
+| Quasi-direct drive | Medium | Good | From motor current | High | Quadrupeds, humanoid legs |
+| Series elastic | Medium–high | Good (through spring) | From spring deflection | High | Research humanoids, exoskeletons |
+| Linear screw | High | Depends on screw lead | Sensor or current | Medium–high | Humanoid legs |
+| Tendon driven | Depends on motor | Varies | Tendon tension or current | Medium | Dexterous hands |
+| Hydraulic | Very high (at the joint) | Depends on valve | Pressure sensors | High | Heavy machinery, legacy legged robots |
+
+<Callout title="Reading the table">
+"Torque density" here means at the joint. Hydraulics score highest only because the pump is somewhere else; count the whole system and the picture changes. The ratings are relative and qualitative — two implementations of the same architecture can differ widely.
+</Callout>
+
+## How to choose
+
+A useful first cut is to ask what the joint will be in contact with.
+
+- **Free space, known loads, accuracy matters** — high-ratio geared.
+- **Unplanned contact and impacts, as in legged locomotion** — quasi-direct drive or series elastic.
+- **Very high force in a narrow envelope** — a linear screw actuator.
+- **Many small joints with no room for motors** — tendons.
+- **Extreme force with power supplied externally** — hydraulics.
+
+Most real robots mix several. A humanoid may use screw actuators in the legs, rotary modules in the arms and tendons in the hands, each chosen for what that joint has to do.
+
+## Sources
+
+1. Pratt, G. A. and Williamson, M. M. "Series elastic actuators." *IEEE/RSJ International Conference on Intelligent Robots and Systems*, 1995. [doi:10.1109/IROS.1995.525827](https://doi.org/10.1109/IROS.1995.525827)
+2. Wensing, P. M. et al. "Proprioceptive Actuator Design in the MIT Cheetah." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183)
+3. Acome, E. et al. "Hydraulically amplified self-healing electrostatic actuators with muscle-like performance." *Science* 359, 2018. [doi:10.1126/science.aao6139](https://doi.org/10.1126/science.aao6139)
+4. "Atlas (robot)." Wikipedia, for the hydraulic Atlas's degrees of freedom and retirement date. [en.wikipedia.org/wiki/Atlas_(robot)](https://en.wikipedia.org/wiki/Atlas_(robot))
+5. Lynch, K. M. and Park, F. C. *Modern Robotics.* 2017. [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)

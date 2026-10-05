@@ -1,0 +1,116 @@
+---
+title: "Transmissions: gears, screws and cables"
+summary: "The reducer decides more about how a joint behaves than the motor does. How planetary, strain wave and cycloidal gears, ball and roller screws, and cable drives work, and what each one costs you."
+category: actuators
+order: 3
+level: intermediate
+updated: 2026-10-05
+tags: [actuators, gears, harmonic-drive, cycloidal, planetary, roller-screw]
+---
+import Figure from '../../../components/Figure.astro';
+import Callout from '../../../components/Callout.astro';
+import JointModule from '../../../figures/JointModule.astro';
+
+An electric motor is happiest spinning at thousands of rpm with modest torque. A knee wants the opposite: a few rad/s and a great deal of torque. The **transmission** closes that gap, and in doing so it sets the joint's backlash, stiffness, efficiency, shock tolerance and — through the $N^2$ rule from the [first article](/actuators/actuator-fundamentals/) — how backdrivable it is.
+
+Two motors of similar size behind different reducers make two very different actuators.
+
+## Where the transmission sits
+
+<Figure number={1} caption="A typical integrated rotary joint module. The reducer is one element among several stacked on a common axis. Not every module has a brake or a torque sensor.">
+  <JointModule />
+</Figure>
+
+Modern robot joints are usually built as a single sealed **module**: motor, reducer, encoders, drive electronics and sometimes a brake and torque sensor in one housing. Having an encoder on *both* sides of the reducer matters — the motor-side encoder is used for commutation and fine velocity, and the output-side encoder reports the true joint angle regardless of gear compliance or backlash.
+
+## Rotary reducers
+
+### Planetary gears
+
+A central sun gear drives several planet gears that roll inside a fixed ring gear; the output is taken from the carrier holding the planets. Load is shared between the planets, input and output are coaxial, and the whole thing is compact.
+
+- **Ratio:** roughly 3:1 to 10:1 per stage. Higher ratios stack stages.
+- **Good at:** efficiency, backdrivability, low cost, robustness.
+- **Costs you:** some backlash, and each added stage adds length, friction and play.
+
+A single planetary stage is the standard reducer for quasi-direct-drive joints.
+
+### Strain wave gears
+
+Often called by the trade name Harmonic Drive. A thin, flexible toothed cup (the *flexspline*) is pressed into an elliptical shape by a bearing (the *wave generator*) so that it meshes with a rigid ring (the *circular spline*) at two opposite points. The flexspline has slightly fewer teeth than the ring — typically two fewer — so each turn of the wave generator advances the flexspline by only those two teeth.
+
+With 100 teeth on the flexspline and 102 on the ring, one input turn moves the output by 2/100 of a turn: a **50:1** reduction in a single, very thin stage.
+
+- **Ratio:** roughly 30:1 to 160:1 in one stage.
+- **Good at:** near-zero backlash, high ratio in a light and compact package, hollow centre for cables.
+- **Costs you:** torsional compliance (the flexspline is a spring), friction, cost, and limited tolerance to shock — a severe overload can make the teeth skip.
+
+This is the classic choice for robot arms, where precision matters more than impact tolerance.
+
+### Cycloidal drives
+
+An eccentric cam makes a lobed disc wobble inside a ring of pins. The disc has one fewer lobe than there are pins, so each revolution of the cam advances the disc by one lobe. Because many lobes are in contact at once, the load is spread widely.
+
+- **Ratio:** high in one stage, similar territory to strain wave gears.
+- **Good at:** shock load capacity, stiffness, long life.
+- **Costs you:** mass, and vibration from the eccentric motion unless balanced — usually with two discs 180° apart.
+
+Heavy industrial robots use *RV reducers*, which put a planetary stage in front of a cycloidal stage, in their large base joints.
+
+## Converting rotation to straight-line motion
+
+### Lead screws and ball screws
+
+A screw turns; a nut travels. In a plain **lead screw** the threads slide, so friction is high and the screw is often *self-locking* — it holds position with no power, but cannot be backdriven. A **ball screw** puts recirculating balls between screw and nut so the contact rolls instead. Friction drops sharply and efficiency reaches about 90%, which also makes it backdrivable.
+
+The force available is set by the *lead* $\ell$, the distance the nut travels per revolution:
+
+$$
+F = \frac{2\pi\,\eta\,\tau}{\ell}
+$$
+
+A finer lead gives more force and less speed, exactly as a higher gear ratio would.
+
+### Planetary roller screws
+
+Replace the balls with **threaded rollers** arranged around the screw like planets. Each roller touches the screw and the nut along many thread flanks instead of at a few ball contact points, so far more bearing area fits in the same space.
+
+According to the [general reference on roller screws](https://en.wikipedia.org/wiki/Roller_screw), the result is higher load rating, stiffness and life than a ball screw of the same size, at similar efficiency (about 75–90%), and at a cost that can be an order of magnitude higher. In an *inverted* roller screw the threads are cut inside the nut and the nut is rotated, which lets the motor's rotor double as the nut and shortens the actuator.
+
+Their load capacity and shock resistance are why roller screws have become the linear actuator of choice for humanoid legs — see [recent technologies](/actuators/recent-actuator-technologies/).
+
+<Callout title="Linkages change the ratio too">
+A linear actuator usually drives its joint through a lever or four-bar linkage. The effective ratio then varies with joint angle, and designers use this deliberately — for example, giving a knee the most mechanical advantage at the angles where squatting loads peak.
+</Callout>
+
+## Belts, cables and capstans
+
+A **timing belt** or a **cable wrapped around a capstan** transmits motion with no gear teeth at all. There is essentially no backlash, very little friction, and no cogging feel, which makes these drives smooth and highly backdrivable. They are well suited to haptic devices, research arms and anywhere transparency matters most.
+
+The ratio is limited by pulley diameters, so they take more space than a gear of the same reduction, and cables stretch and need tensioning. A **tendon drive** is the same idea used to place the motor far from the joint.
+
+## Comparison
+
+Ranges are typical engineering values, not specifications. They vary with size, quality and operating point.
+
+| Transmission | Ratio per stage | Backlash | Backdrivable | Shock tolerance | Relative cost |
+|---|---|---|---|---|---|
+| Planetary gear | ~3–10:1 | Low | Yes | Good | Low |
+| Strain wave gear | ~30–160:1 | Near zero | Poorly | Limited | High |
+| Cycloidal drive | High, single stage | Very low | Poorly | Very good | Medium–high |
+| Ball screw | Set by lead | Very low | Yes | Moderate | Medium |
+| Planetary roller screw | Set by lead | Very low | Yes | Very good | Very high |
+| Belt / capstan cable | Low | Near zero | Excellent | Good | Low |
+
+## Questions to ask of any transmission
+
+1. **What ratio do I actually need?** Start from required joint torque and speed, then pick the lowest ratio a feasible motor can support. Every extra unit of ratio costs transparency at the square.
+2. **Will this joint take impacts?** If so, shock capacity and backdrivability outrank precision.
+3. **How will I measure torque?** From motor current (needs a transparent, low-ratio drive), from a torque sensor, or from a spring.
+4. **What does it cost at volume?** Precision reducers and roller screws are among the most expensive parts of a robot, which is why they attract so much manufacturing effort.
+
+## Sources
+
+1. "Roller screw." Wikipedia. [en.wikipedia.org/wiki/Roller_screw](https://en.wikipedia.org/wiki/Roller_screw) — operating principle, variants, efficiency and cost relative to ball screws.
+2. Wensing, P. M. et al. "Proprioceptive Actuator Design in the MIT Cheetah." *IEEE Transactions on Robotics*, 2017. [doi:10.1109/TRO.2016.2640183](https://doi.org/10.1109/TRO.2016.2640183) — the case for low gear ratios in joints that take impacts.
+3. Lynch, K. M. and Park, F. C. *Modern Robotics.* 2017. [hades.mech.northwestern.edu](https://hades.mech.northwestern.edu/index.php/Modern_Robotics)

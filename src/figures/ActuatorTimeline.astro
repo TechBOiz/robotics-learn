@@ -1,0 +1,30 @@
+---
+const events = [
+  { year: '1995', a: 'Series elastic', b: 'actuators' },
+  { year: '2017', a: 'Proprioceptive', b: 'actuator paper' },
+  { year: '2018', a: 'HASEL artificial', b: 'muscles' },
+  { year: '2022', a: 'Optimus roller-', b: 'screw actuators' },
+  { year: '2024', a: 'Atlas goes', b: 'all-electric' },
+  { year: '2025', a: 'Protoclone, NEO,', b: 'Figure 03' },
+  { year: '2026', a: 'Atlas production,', b: 'supplier modules' },
+];
+const x = (i: number) => 60 + i * 100;
+---
+<svg class="fig" viewBox="0 0 720 210" role="img" aria-labelledby="tl-title tl-desc">
+  <title id="tl-title">Milestones in robot actuation, 1995 to 2026</title>
+  <desc id="tl-desc">{events.map((e) => `${e.year}: ${e.a} ${e.b}`).join('. ')}.</desc>
+  <line class="axis" x1="30" y1="105" x2="690" y2="105" />
+  <line class="axis" x1="110" y1="99" x2="118" y2="111" /><line class="axis" x1="102" y1="99" x2="110" y2="111" />
+  {events.map((e, i) => {
+    const up = i % 2 === 0;
+    return (
+      <g>
+        <line class="link" x1={x(i)} y1={up ? 68 : 105} x2={x(i)} y2={up ? 105 : 142} />
+        <circle class={i < 3 ? 'f1' : 'f3'} cx={x(i)} cy="105" r="6" />
+        <text x={x(i)} y={up ? 26 : 160} text-anchor="middle" class="t-strong">{e.year}</text>
+        <text x={x(i)} y={up ? 44 : 178} text-anchor="middle" class="t-small">{e.a}</text>
+        <text x={x(i)} y={up ? 58 : 192} text-anchor="middle" class="t-small">{e.b}</text>
+      </g>
+    );
+  })}
+</svg>

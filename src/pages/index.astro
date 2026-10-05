@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import ArticleList from '../components/ArticleList.astro';
+import { categories } from '../data/categories';
+import { getArticles } from '../lib/articles';
+import { href } from '../lib/paths';
+
+const articles = await getArticles();
+const count = (id: string) => articles.filter((a) => a.data.category === id).length;
+const featured = categories.find((c) => count(c.id) > 0);
+const featuredArticles = featured ? articles.filter((a) => a.data.category === featured.id) : [];
+---
+<Base section="topics">
+  <section class="hero container">
+    <p class="kicker">Everything Robotics · Learn</p>
+    <h1>How robots work, one layer at a time.</h1>
+    <p class="lede">
+      Short, sourced articles on the parts of a robot that matter — from the motors that move it to the models
+      that decide what it does. Written for engineers who want the reasoning, not just the vocabulary.
+    </p>
+  </section>
+
+  {featured && (
+    <section class="section container" aria-labelledby="start-here">
+      <div class="section-head">
+        <h2 id="start-here">Start here</h2>
+        <p>The first series is complete enough to read end to end.</p>
+      </div>
+      <div class="series">
+        <div>
+          <p class="kicker">Series · {featuredArticles.length} articles</p>
+          <h3>{featured.name}</h3>
+          <p>{featured.blurb}</p>
+          <a class="more" href={href(`/${featured.id}/`)}>Open the series →</a>
+        </div>
+        <ArticleList articles={featuredArticles} />
+      </div>
+    </section>
+  )}
+
+  <section class="section container" id="topics" aria-labelledby="topics-title">
+    <div class="section-head">
+      <h2 id="topics-title">Topics</h2>
+      <p>Each topic opens with what is planned, and fills in as articles are written.</p>
+    </div>
+    <ul class="category-grid">
+      {categories.map((c) => (
+        <li>
+          <a class="category-card" href={href(`/${c.id}/`)}>
+            <h3>{c.name}</h3>
+            <p>{c.blurb}</p>
+            {count(c.id) > 0
+              ? <span class="badge live">{count(c.id)} {count(c.id) === 1 ? 'article' : 'articles'}</span>
+              : <span class="badge">Planned</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

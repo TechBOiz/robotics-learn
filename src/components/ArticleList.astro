@@ -1,0 +1,23 @@
+---
+import type { Article } from '../lib/articles';
+import { articleHref, readingMinutes } from '../lib/paths';
+
+interface Props {
+  articles: Article[];
+}
+const { articles } = Astro.props;
+---
+<ol class="article-list">
+  {articles.map((a) => (
+    <li>
+      <a href={articleHref(a.id)}>
+        <strong>{a.data.title}</strong>
+        <span class="desc">{a.data.summary}</span>
+        <span class="meta">
+          <span class:list={['badge', a.data.level]}>{a.data.level}</span>
+          <span>{readingMinutes(a.body)} min read</span>
+        </span>
+      </a>
+    </li>
+  ))}
+</ol>

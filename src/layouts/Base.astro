@@ -1,0 +1,56 @@
+---
+import '../styles/global.css';
+import { href } from '../lib/paths';
+
+interface Props {
+  title?: string;
+  description?: string;
+  section?: 'topics' | 'about';
+}
+
+const siteName = 'Everything Robotics · Learn';
+const { title, description = 'Plain-language, sourced articles on how robots work — actuators, dynamics, sensing, perception and learning.', section } = Astro.props;
+const fullTitle = title ? `${title} — ${siteName}` : siteName;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={href('/favicon.svg')} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="container" aria-label="Main">
+        <a class="brand" href={href('/')}>
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2M5.3 5.3l2.3 2.3M16.4 16.4l2.3 2.3M18.7 5.3l-2.3 2.3M7.6 16.4l-2.3 2.3" /></svg>
+          </span>
+          Everything Robotics <small>Learn</small>
+        </a>
+        <div class="nav-links">
+          <a href={href('/#topics')} aria-current={section === 'topics' ? 'page' : undefined}>Topics</a>
+          <a href={href('/about/')} aria-current={section === 'about' ? 'page' : undefined}>About</a>
+        </div>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <span>Everything Robotics · Learn — articles are written to be checked: every factual claim about a product or paper links to its source.</span>
+        <a href="https://github.com/TechBOiz/everything-robotics">GitHub</a>
+      </div>
+    </footer>
+  </body>
+</html>
